@@ -2,7 +2,9 @@ useDynLib("cems")
 
 export(
   "cem",
-  "cem.optimize"
+  "cem.optimize",
+  "cem.example.arc",
+  "cem.example.sr"
 )
 
 S3method("predict", "cem")

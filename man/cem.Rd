@@ -1,27 +1,62 @@
 \name{cem}
 \alias{cem}
+\alias{cem.single}
+\alias{cems}
+\alias{cems-package}
 \alias{cem.optimize}
 \alias{predict.cem}
 \title{Conditional Expectation Manifolds}
 \description{
 This package computes principal surfaces based on the approach described in
-Gerber et. al. 2009. Prinicpal surfaces are typically found by minimizing 
-\eqn{ E[ || Y -g(\lambda(Y))|| ] }{E[ || Y -g(\lambda_g(Y))|| ] } over the
-functions \eqn{g:R^m \mapsto R^n}{g:R^m -> R^n} with \eqn{m < n} {m < n}
-and \eqn{ \lambda_g:R^n \mapsto R^m}{\lambda_g:R^n -> R^m} defined as an 
-orthogonal projection onto \eqn{g}{g}. In Gerber et. al. 2009 the oppoiste 
-approach is described; fixing 
-\eqn{g_{\lambda}(x) = E[Y | \lambda(Y) = x] }{ g_\lambda(x) = E[Y | \lambda(Y) = x } 
+Gerber et. al. 2009 and Gerber and Whitaker 2011. 
+
+Prinicpal surfaces are typically found by minimizing \eqn{ E[ || Y
+-g(\lambda(Y))||^2 ] } over the functions \eqn{g:R^m \mapsto R^n}{g:R^m -> R^n}
+with \eqn{m < n} {m < n} and \eqn{ \lambda_g:R^n \mapsto R^m}{\lambda_g:R^n ->
+R^m} defined as an orthogonal projection onto \eqn{g}{g}. 
+
+In Gerber et. al. 2009 the oppoiste approach is described; fixing
+\eqn{g_{\lambda}(x) = E[Y | \lambda(Y) = x] }{ g_\lambda(x) = E[Y | \lambda(Y) =
+x } 
 and minimzing over \eqn{\lambda}{\lambda}, i.e. optimizing the conditonal
 expectation manifold (CEM) given \eqn{\lambda}{\lambda}. Gerber et. al. 2009
 called this approach kernel map manifolds (KMM) since both mappings where defined
-by kernel regression. 
+by kernel regression.
+
+In Gerber and Whitaker 2011 the same formulation is exploited to provide an
+approach that solves the model selection problem for principal curves.  The
+orthogonal projection distance minimization
+\eqn{E[ ||Y - g_\lambda(Y)||^2]}
+yields principal curves that are saddle points and thus model selection (i.e.
+bandwidth slection in this implementation) is not possible even with
+cross-validation.  The approach in Gerber and Whitaker 2011 formulates an
+alternate optimization problem minimzing orthogonality
+\eqn{E[ < Y - g_\lambda(Y), \frac{d}{ds} g(s)|_{s=|lambda(Y)}>^2 ] }
+which leads to principal curves at minima.
+
+This package implements the approach in Gerber et. al. 2009 for both
+formulation, i.e. minimzing  projection distance
+\eqn{E[ ||Y - g_\lambda(Y)||^2]} or orthogonality
+\eqn{E[ < Y - g_\lambda(Y), \frac{d}{ds} g(s)|_{s=|lambda(Y)}>^2 ] }.
+. The implementation is based on a kernel regression for \eqn{\lambda} and
+\eqn{g} and uses a numerical gradient descent for minimization. The gradient
+descent includes an optimization of the bandwidth, i.e. model selection. For
+minimzing the projection distance this dopes not lead to good results since
+principal curves are saddle points. Thus \code{stepBW} should be set to 0 in
+this case.
+
+
 }
 
 
 \usage{
-cem(y, z, knn = 15, iter = 100, step = 0.1, fudge = 2.5, verbose=1)
-cem.optimize(object, iter = 50, step=0.1, verbose=1)
+cem( y, z,  knnY=0.5*nrow(y), knnX = 5*ncol(z), sigmaY= 1/3, sigmaX=1/3, 
+     iter =100, stepZ = 1, stepBW = 0.1, verbose=1, scales=nrow(y), type=2,
+     sigmaAsFactor = T, optimalSigmaX =  T )
+cem.single( y, z,  knnY=0.5*nrow(y), knnX = 5*ncol(z), sigmaY= 1/3, sigmaX=1/3, 
+     iter =100, stepZ = 1, stepBW = 0.1, verbose=1, type=2, sigmaAsFactor = T, 
+     optimalSigmaX =  T )
+cem.optimize(object, iter = 50, stepZ=1, stepBW=0.1, verbose=1, optimalSigmaX =  T )
 \method{predict}{cem}(object, newdata, ...)
 }
 
@@ -30,14 +65,35 @@ cem.optimize(object, iter = 50, step=0.1, verbose=1)
 manifold for.}
   \item{z}{Initalization for low dimensional mapping \eqn{\lambda}{\lambda}. For
 example an isomap or lle or PCA embedding of \eqn{y}{y}.}
-  \item{knn}{Number of nearest neighbors for graph computation.}    
+  \item{knnX}{Number of nearest neighbors for kernel regression of \eqn{g}, i.e.
+the regression is trunctaed to only the knnX nearest neighbors}    
+  \item{knnY}{Number of nearest neighbors for kernel regression of \eqn{\lambda}, i.e. the
+regression is trunctaed to only the knnX nearest neighbors}  
+ \item{sigmaX}{Initalize bandwidth of \eqn{g} to sigmaX. If \code{sigamAsFactor}
+is set to true the bandiwdth is computed as sigmaX times average knnX nearest
+neighbor distance.}  
+ \item{sigmaY}{Initalize bandwidth of \eqn{\lambda} to sigmaY. If \code{sigamAsFactor}
+is set to true the bandiwdth is computed as sigmaX times average knnY nearest
+neighbor distance.}  
   \item{iter}{Number of optimization iterations, i.e. number of gradient desecent with
 line search setps.}
-  \item{step}{Gradient descent step size}
-  \item{fudge}{Fudge factor, amount of over-smoothing of inital CEM.}.
+  \item{stepZ}{Gradient descent step size for optimizing Z}
+  \item{stepBW}{Gradient descent step size for optimizing bandwidths}
   \item{verbose}{Report gradient descent information. 1 reports iteration number
 and mean squared projetcion distances. 2 has additonal information on step size
-and line search.} 
+and line search.}
+  \item{sigmaAsFactor}{Use sigmaX and sigmaY as multipliers of the average
+nearest neighbor distances in \eqn{Y} and \eqn{\lambda(Y)}. respectively.}
+  \item{optimalSigmaX}{If true optimizes sigmaX before every iteration - will
+not work for MSE minimzation, i.e. sigmaX will go to 0- owrk well for orthogonal
+projectiona nd speeds up computation isgnificantly}
+  \item{scales}{A list of the number of points used for iteratively computing
+the manifold, i.e. start with a small number of points to compute a quick rough
+approximation and refine the estimation by adding more points. If the whole data
+set should be used at once set scales to \code{nrow(y)}}  
+  \item{type}{Which objective function should be minimized. 1 = \eqn{E[ ||Y -
+g_\lambda(Y)||^2]}. 2 = \eqn{E[<g(f(y)) - y , g'(f(y))>^2]}. 3 = 2 but with
+\eqn{g'(f(y))>} ortho normalized. 4=3 with \eqn{g(f(y)) - y } normalized.}
   \item{object}{CEM object to do prediction for}
   \item{newdata}{Data to do prediction for. If \code{ncol(newdata) == m} for each
 point x in newdata g(x) is computed. If \code{col{newdata} == n} for each point
@@ -52,87 +108,35 @@ y in newdata \eqn{\lambda(y)}{\lambda(y)} is computed.}
 \author{
   Samuel Gerber
 }
+\seealso{
+  \code{\link{cem.example.arc}}
+  \code{\link{cem.example.sr}}
+}
 \references{
 Samuel Gerber, Tolga Tasdizen, Ross Whitaker,
 Dimensionality Reduction and Principal Surfaces via Kernel Map Manifolds, 
 In Proceedings of the 2009 International Conference on Computer Vison (ICCV 2009).
+
+Samuel Gerber and Ross Whitaker,
+Conditional Expectation Curves, 
+Submitted 2011.
+
 }
 \examples{
-library(vegan)
-library(rgl)
 library(cems)
 
-###Swissroll data set example
 
-#Create swissroll toy data set
-data(swissroll)
-d <- swissroll(500, nstd = 0.5)
-plot3d(d$Xn)
-#d$Xn contains noisy (orthogonal Normal distirbuted to the swissroll) of d$X
+##Noisy half circle example
+phi <- runif(1000)*pi
+arc <- cbind(sin(phi), cos(phi)) * (1+rnorm(1000) * 0.1)
+plot(arc)
 
-#Compute isomap
-iso <- isomap(dist(d$Xn), k=15)
+pc <-  cem(y=arc, z=phi, knnX=15, knnY=15, iter=10)
 
-#Create and optimize CEM
-ps <- cem(y = d$Xn, z = iso$points[, 1:2], knn=20, iter=5)
+x <- predict(pc)
+y <- predict(pc, x);
+plot(y$y)
 
-#Create test set
-dtest <- swissroll(500, nstd = 0.25)
-
-#parametrize manifold coordinates from test set
-coords <- predict(ps, dtest$Xn)
-
-#reconstruct points on manifold from coordinates
-p <- predict(ps, coords)
-
-#mean squared test error
-mean( rowSums((dtest$X - p)^2) )
-
-#optimize some more with samller step size
-ps <- cem.optimize(ps, iter=5, step = 0.05)
-
-#mean sqyuared error
-coords <- predict(ps, dtest$Xn)
-p <- predict(ps, coords)
-mean( rowSums((dtest$X - p)^2) )
-
-
-
-###Frey faces example
-#Do not run
-\dontrun{
-data("frey_faces")
-
-#create isomap
-iso <- isomap(dist(faces), k=25)
-
-#Create conditional expectation surface (no optimization here, 20 iteration take
-#roughly 2h on a 2Ghz laptop)
-ps <- cem(y=faces, z = iso$points[, 1:3], knn=45, iter=0)
-
-#parametrize manifold coordinates
-coords <- predict(ps)
-
-#reconstruct points on manifold from coordinates
-p <- predict(ps, coords)
-
-#mean squared test error
-mean( rowSums((faces - p)^2) )
-
-#plot images
-split.screen(c(2,3))
-
-
-ind <- c(1, 120, 333)
-for(i in 1:length(ind)){
- screen(i)
- im <- matrix(faces[ind[i], 560:1], 20, 28)
- image(1:nrow(im), 1:ncol(im), im, xlab="", ylab="")
- screen(i+3)
- im <- matrix(p[ind[i], 560:1], 20, 28)
- image(1:nrow(im), 1:ncol(im), im, xlab="", ylab="")
-}
-}
 
 }
 \keyword{nonparametric,models,nonlinear}
