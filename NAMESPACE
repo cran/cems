@@ -4,7 +4,8 @@ export(
   "cem",
   "cem.optimize",
   "cem.example.arc",
-  "cem.example.sr"
+  "cem.example.sr",
+  "swissroll"  
 )
 
 S3method("predict", "cem")

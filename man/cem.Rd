@@ -1,6 +1,5 @@
 \name{cem}
 \alias{cem}
-\alias{cem.single}
 \alias{cems}
 \alias{cems-package}
 \alias{cem.optimize}
@@ -50,30 +49,27 @@ this case.
 
 
 \usage{
-cem( y, z,  knnY=0.5*nrow(y), knnX = 5*ncol(z), sigmaY= 1/3, sigmaX=1/3, 
-     iter =100, stepZ = 1, stepBW = 0.1, verbose=1, scales=nrow(y), type=2,
-     sigmaAsFactor = T, optimalSigmaX =  T )
-cem.single( y, z,  knnY=0.5*nrow(y), knnX = 5*ncol(z), sigmaY= 1/3, sigmaX=1/3, 
-     iter =100, stepZ = 1, stepBW = 0.1, verbose=1, type=2, sigmaAsFactor = T, 
-     optimalSigmaX =  T )
-cem.optimize(object, iter = 50, stepZ=1, stepBW=0.1, verbose=1, optimalSigmaX =  T )
-\method{predict}{cem}(object, newdata, ...)
+cem( y, lz, ly,  knnX=5*ncol(y), sigmaY= 1/3, sigmaX=1/3, iter =100, nPoints =
+    nrow(y), stepZ = 1, stepBW = 0.1, verbose=1, risk=2, penalty=0,
+    sigmaAsFactor = T, optimalSigmaX =  F , quadratic = F)
+cem.optimize(object, iter = 100, nPoints = nrow(object$y), stepZ=1, stepBW=0.1,
+    verbose=1, optimalSigmaX =F ) 
+\method{predict}{cem}(object, newdata = object$y, ...)
 }
 
 \arguments{
   \item{y}{\eqn{n}{n}-dimensional data to compute conditional expectation
 manifold for.}
-  \item{z}{Initalization for low dimensional mapping \eqn{\lambda}{\lambda}. For
-example an isomap or lle or PCA embedding of \eqn{y}{y}.}
+  \item{ly}{Landmark points for computing mapping from high-D to low D}
+  \item{lz}{Initalization for low dimensional mapping \eqn{\lambda}{\lambda}. For
+example an isomap or lle or PCA embedding of \eqn{ly}{ly}.}
   \item{knnX}{Number of nearest neighbors for kernel regression of \eqn{g}, i.e.
 the regression is trunctaed to only the knnX nearest neighbors}    
-  \item{knnY}{Number of nearest neighbors for kernel regression of \eqn{\lambda}, i.e. the
-regression is trunctaed to only the knnX nearest neighbors}  
  \item{sigmaX}{Initalize bandwidth of \eqn{g} to sigmaX. If \code{sigamAsFactor}
 is set to true the bandiwdth is computed as sigmaX times average knnX nearest
 neighbor distance.}  
  \item{sigmaY}{Initalize bandwidth of \eqn{\lambda} to sigmaY. If \code{sigamAsFactor}
-is set to true the bandiwdth is computed as sigmaX times average knnY nearest
+is set to true the bandwidth is computed as sigmaX times average knnY nearest
 neighbor distance.}  
   \item{iter}{Number of optimization iterations, i.e. number of gradient desecent with
 line search setps.}
@@ -86,14 +82,15 @@ and line search.}
 nearest neighbor distances in \eqn{Y} and \eqn{\lambda(Y)}. respectively.}
   \item{optimalSigmaX}{If true optimizes sigmaX before every iteration - will
 not work for MSE minimzation, i.e. sigmaX will go to 0- owrk well for orthogonal
-projectiona nd speeds up computation isgnificantly}
-  \item{scales}{A list of the number of points used for iteratively computing
-the manifold, i.e. start with a small number of points to compute a quick rough
-approximation and refine the estimation by adding more points. If the whole data
-set should be used at once set scales to \code{nrow(y)}}  
-  \item{type}{Which objective function should be minimized. 1 = \eqn{E[ ||Y -
-g_\lambda(Y)||^2]}. 2 = \eqn{E[<g(f(y)) - y , g'(f(y))>^2]}. 3 = 2 but with
-\eqn{g'(f(y))>} ortho normalized. 4=3 with \eqn{g(f(y)) - y } normalized.}
+projection and speeds up computation significantly}
+  \item{risk}{Which objective function should be minimized. 0 = \eqn{E[ ||Y -
+g_\lambda(Y)||^2]}. 1 = \eqn{E[<g(f(y)) - y , g'(f(y))>^2]}. 2 = 1 but with
+\eqn{g'(f(y))>} ortho normalized. 3=2 with \eqn{g(f(y)) - y } normalized.}
+  \item{penalty}{  0 = No penalty, 1 = Deviation from arc length parametrization}
+  \item{quadratic}{ Use a locally quadratic regression instead of linear for
+    \eqn{g}{g} }
+  \item{nPoints}{ Number of points that are sampled for computing gradient descent
+    directions}
   \item{object}{CEM object to do prediction for}
   \item{newdata}{Data to do prediction for. If \code{ncol(newdata) == m} for each
 point x in newdata g(x) is computed. If \code{col{newdata} == n} for each point
@@ -118,8 +115,8 @@ Dimensionality Reduction and Principal Surfaces via Kernel Map Manifolds,
 In Proceedings of the 2009 International Conference on Computer Vison (ICCV 2009).
 
 Samuel Gerber and Ross Whitaker,
-Conditional Expectation Curves, 
-Submitted 2011.
+Unsupervised Principal Curve Estimation, 
+JMLR 2013.
 
 }
 \examples{
@@ -127,15 +124,29 @@ library(cems)
 
 
 ##Noisy half circle example
-phi <- runif(1000)*pi
-arc <- cbind(sin(phi), cos(phi)) * (1+rnorm(1000) * 0.1)
-plot(arc)
+phi <- runif(100)*pi
+arc <- cbind(cos(phi), sin(phi)) * (1+rnorm(100) * 0.1)
 
-pc <-  cem(y=arc, z=phi, knnX=15, knnY=15, iter=10)
+pc <-  cem(y=arc, ly=arc, lz=phi, knnX=50, iter=10, optimalSigmaX=TRUE, verbose=2)
 
+#predict original data
 x <- predict(pc)
 y <- predict(pc, x);
-plot(y$y)
+
+#predict new data
+xt <- seq(min(x), max(x), length.out=100)
+yt <- predict(pc, xt)
+
+#plot things
+arc0 <- cbind(cos(phi), sin(phi))
+o0 <- order(phi) 
+
+par(mar=c(5,5,4,2))
+plot(arc, xlab=expression(y[1]), ylab=expression(y[2]), col = "#00000020",
+     pch=19, asp=1, cex.lab=1.5, cex.axis=1.5, cex=2, bty="n")
+
+lines(arc0[o0,], lwd=4, col="black", lty=6)
+lines(yt$y, col="dodgerblue", lwd=4, lty=1)
 
 
 }

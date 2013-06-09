@@ -10,7 +10,7 @@ class SquaredEuclideanMetric : public Metric<TPrecision>{
   public:
     virtual ~SquaredEuclideanMetric(){};
 
-    TPrecision distance(Vector<TPrecision> &x1, Vector<TPrecision> &x2){
+    TPrecision distance(FortranLinalg::Vector<TPrecision> &x1, FortranLinalg::Vector<TPrecision> &x2){
       TPrecision result = 0;
       TPrecision tmp =0;
       for(unsigned int i=0; i<x1.N(); i++){
@@ -20,7 +20,7 @@ class SquaredEuclideanMetric : public Metric<TPrecision>{
       return result;
     };
 
-    TPrecision distance(Matrix<TPrecision> &X, int i1, Matrix<TPrecision> &Y, int i2){
+    TPrecision distance(FortranLinalg::Matrix<TPrecision> &X, int i1, FortranLinalg::Matrix<TPrecision> &Y, int i2){
       TPrecision result = 0;
       TPrecision tmp =0;
       for(unsigned int i=0; i<X.M(); i++){
@@ -30,7 +30,7 @@ class SquaredEuclideanMetric : public Metric<TPrecision>{
       return result;
     };
 
-    TPrecision distance(Matrix<TPrecision> &X, int i1, Vector<TPrecision> &x2){
+    TPrecision distance(FortranLinalg::Matrix<TPrecision> &X, int i1, FortranLinalg::Vector<TPrecision> &x2){
       TPrecision result = 0;
       TPrecision tmp = 0;
       for(unsigned int i=0; i<x2.N(); i++){

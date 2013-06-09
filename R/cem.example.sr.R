@@ -5,7 +5,6 @@ library(rgl)
 library(vegan)
   
 #Create data 
-data(swissroll)
 d     <- swissroll(N=n, nstd = nstd)
 dtest <- swissroll(N=n, nstd = nstd)
 
@@ -18,8 +17,8 @@ if(init == 0){
 }
 
 
-ps0 <- cem(y = d$Xn, z = z, knnX=300, knnY=50, iter=0, verbose=2, stepZ=1,
-    sigmaY=0.3, sigmaX = 0.3, stepBW=0.1, type=0)
+ps0 <- cem(y = d$Xn, ly=d$Xn, lz = z, knnX=300, nPoints=100, iter=0, verbose=2, stepZ=1,
+    sigmaY=0.3, sigmaX = 0.3, stepBW=0.1, risk=0)
 
 
   ps = ps0

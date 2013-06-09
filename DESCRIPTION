@@ -1,13 +1,14 @@
 Package: cems
-Version: 0.1
-Date: 2011-11-7
-Author: Samuel Gerber <sgerber@cs.utah.edu> 
+Version: 0.2
+Date: 2013-06-09
+Author: Samuel Gerber <sgerber@cs.utah.edu>
 Maintainer: Samuel Gerber <sgerber@cs.utah.edu>
-Description: Conditional expectation manifolds are an approach to compute principal curves and surfaces.
+Description: Conditional expectation manifolds are an approach to
+        compute principal curves and surfaces.
 Title: Conditional expectation manifolds.
-Depends: R (>= 2.10)
+Depends: R (>= 2.10), plotrix, RColorBrewer, rgl, vegan
 License: GPL-2
-Suggests: vegan,rgl
 Repository: CRAN
-Packaged: 2011-11-13 17:17:26 UTC; sgerber
-Date/Publication: 2011-11-13 17:47:20
+Packaged: 2013-06-09 00:00:20 UTC; samgerber
+NeedsCompilation: yes
+Date/Publication: 2013-06-09 08:18:51

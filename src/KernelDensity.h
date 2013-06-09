@@ -11,7 +11,7 @@ template<typename TPrecision>
 class KernelDensity{
       
   public:
-    KernelDensity(DenseMatrix<TPrecision> &data, Kernel<TPrecision, TPrecision> &k)
+    KernelDensity(FortranLinalg::DenseMatrix<TPrecision> &data, Kernel<TPrecision, TPrecision> &k)
                     :X(data), kernel(k){
     };
 
@@ -26,7 +26,8 @@ class KernelDensity{
     };
 
     //retunrs unnormalized density
-    double p(DenseMatrix<TPrecision> &T, int index, bool leaveout = false){
+    double p(FortranLinalg::DenseMatrix<TPrecision> &T, int index, bool leaveout = false){
+      using namespace FortranLinalg;
       TPrecision wsum = 0;
       for(unsigned int i=0; i < X.N(); i++){
         bool use = true;
@@ -40,7 +41,20 @@ class KernelDensity{
       return wsum;
     };
 
-    double p(DenseVector<TPrecision> &x, int leaveout = -1){
+
+    FortranLinalg::DenseVector<TPrecision> p(FortranLinalg::DenseMatrix<TPrecision> e){
+      using namespace FortranLinalg;
+      DenseVector<TPrecision> res(e.N());
+      DenseVector<TPrecision> tmp(e.M());
+      for(int i=0; i< e.N(); i++){
+        Linalg<TPrecision>::ExtractColumn(e, i, tmp);
+        res(i) = p(tmp);
+      }
+      return res;
+    };
+
+
+    double p(FortranLinalg::DenseVector<TPrecision> &x, int leaveout = -1){
       TPrecision wsum = 0;
       for(unsigned int i=0; i < X.N(); i++){
         if(leaveout != i){
@@ -50,12 +64,12 @@ class KernelDensity{
       return wsum;
     };
 
-    void setData(DenseMatrix<TPrecision> &data){
+    void setData(FortranLinalg::DenseMatrix<TPrecision> &data){
       X = data;
     };
 
   private:
-    DenseMatrix<TPrecision> X;
+    FortranLinalg::DenseMatrix<TPrecision> X;
     Kernel<TPrecision, TPrecision> &kernel;
 };
 

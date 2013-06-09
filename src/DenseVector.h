@@ -1,9 +1,10 @@
 #ifndef DENSEVECTOR_H
 #define DENSEVECTOR_H
 
-#include <cstddef>
-
 #include "Vector.h"
+
+namespace FortranLinalg{
+
 //Simple Matrix storage to abstract row and columnwise ordering
 template <typename TPrecision>
 class DenseVector : public Vector<TPrecision>{
@@ -46,7 +47,14 @@ class DenseVector : public Vector<TPrecision>{
 
     void deallocate(){
       if(a != NULL){
-        delete[] a;  
+        delete[] a; 
+        a = NULL; 
+      }
+    };
+
+    void shorten(unsigned int newn){
+      if(newn < n){
+        n = newn;
       }
     };
 
@@ -57,6 +65,8 @@ class DenseVector : public Vector<TPrecision>{
 
 
 };
+
+}
 
 
 #endif

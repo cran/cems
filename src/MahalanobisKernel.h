@@ -13,16 +13,16 @@
 template<typename TPrecision>
 class MahalanobisKernelParam{
   public:
-	  DenseMatrix<TPrecision> ev;
-	  DenseVector<TPrecision> var;
+	  FortranLinalg::DenseMatrix<TPrecision> ev;
+	  FortranLinalg::DenseVector<TPrecision> var;
 	  TPrecision varOrtho;
-	  DenseVector<TPrecision> mean;
+	  FortranLinalg::DenseVector<TPrecision> mean;
 	 
 	  MahalanobisKernelParam(){};
 
-	  MahalanobisKernelParam(DenseMatrix<TPrecision> dirs,
-			  DenseVector<TPrecision> vars, TPrecision ortho,
-			  DenseVector<TPrecision> m){ 
+	  MahalanobisKernelParam(FortranLinalg::DenseMatrix<TPrecision> dirs,
+			  FortranLinalg::DenseVector<TPrecision> vars, TPrecision ortho,
+			  FortranLinalg::DenseVector<TPrecision> m){ 
 	     ev = dirs;
 	     var = vars;
 	     varOrtho = ortho;
@@ -45,8 +45,8 @@ class MahalanobisKernel{
 
   private:
     MahalanobisKernelParam<TPrecision> m;
-    DenseVector<TPrecision> lPlane;   
-    DenseVector<TPrecision> diff;   
+    FortranLinalg::DenseVector<TPrecision> lPlane;   
+    FortranLinalg::DenseVector<TPrecision> diff;   
     int c;
     
   public:
@@ -67,7 +67,8 @@ class MahalanobisKernel{
 
 
 
-    TPrecision f(Vector<TPrecision> &x){
+    TPrecision f(FortranLinalg::Vector<TPrecision> &x){
+      using namespace FortranLinalg;
       Linalg<TPrecision>::Subtract(m.mean, x, diff);
       return f( );
     };
@@ -75,7 +76,8 @@ class MahalanobisKernel{
 
 
   
-    TPrecision f(Matrix<TPrecision> &X, int i){
+    TPrecision f(FortranLinalg::Matrix<TPrecision> &X, int i){
+      using namespace FortranLinalg;
       Linalg<TPrecision>::Subtract(X, i, m.mean, diff);
       return f( );
     };
@@ -91,6 +93,7 @@ class MahalanobisKernel{
     };
 
     void setKernelParam(MahalanobisKernelParam<TPrecision> &param){
+      using namespace FortranLinalg;
       m = param;
       int d = m.mean.N();
       int dOrtho = d - param.ev.M();
@@ -114,6 +117,7 @@ class MahalanobisKernel{
 
   private:
     TPrecision f(){
+      using namespace FortranLinalg;
       TPrecision l = Linalg<TPrecision>::SquaredLength(diff);
       
 

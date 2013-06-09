@@ -3,51 +3,64 @@
 #endif
 
 #define R_NO_REMAP
+#define R_PACKAGE
+
 #include <R.h>
 #include <Rinternals.h>
 #include <stdio.h>
 
-#include "CEM.h"
-#include "CEMRegression.h"
+#include "FastCEM.h"
+
 
 extern "C" {
   
 
 
-
-
 //CEM methods
 
-SEXP cem_create(SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy, SEXP Rmz,
-    SEXP RknnY, SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX, SEXP Ri, 
-    SEXP RsZ, SEXP RsBW, SEXP Rverbose, SEXP Rtype, SEXP RsigmaAsFactor, SEXP
-    RoptimalSigmaX) {
-  
+SEXP cem_create_fast(SEXP Ry, SEXP Rn, SEXP Rmy, SEXP RlambdaY, SEXP RlambdaZ,
+    SEXP RlambdaN, SEXP RlambdaM, SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX, SEXP
+    Ri, SEXP RnP, SEXP RsZ, SEXP RsBW, SEXP Rverbose, SEXP Rrisk, SEXP Rpenalty, SEXP
+    RsigmaAsFactor, SEXP RoptimalSigmaX, SEXP Rquadratic) {
+
+  using namespace FortranLinalg;
+
   int verbose = *INTEGER(Rverbose);
-  int knnY = *INTEGER(RknnY);
   int knnX = *INTEGER(RknnX);
   int iter = *INTEGER(Ri);
+  int nPoints = *INTEGER(RnP);
   int n = *INTEGER(Rn);
-  int mz = *INTEGER(Rmz);
+  int lambdaM = *INTEGER(RlambdaM);
+  int lambdaN = *INTEGER(RlambdaN);
   int my = *INTEGER(Rmy);
-  int type = *INTEGER(Rtype);
+  int riskI = *INTEGER(Rrisk);
+  int penaltyI = *INTEGER(Rpenalty);
   double *y = REAL(Ry);
-  double *z = REAL(Rz);
+
+  double *lambdaZ = REAL(RlambdaZ);
+  double *lambdaY = REAL(RlambdaY);
+  
   double sZ = *REAL(RsZ);
   double sBW = *REAL(RsBW);
   double sigmaY = *REAL(RsigmaY);
   double sigmaX = *REAL(RsigmaX);
   bool sigmaAsFactor = *INTEGER(RsigmaAsFactor);
   bool optimalSigmaX = *INTEGER(RoptimalSigmaX);
+  bool quadratic = *INTEGER(Rquadratic);
   
-  DenseMatrix<double> Z(mz, n, z);
+  DenseMatrix<double> LambdaZ(lambdaM, lambdaN, lambdaZ);
+  DenseMatrix<double> LambdaY(my, lambdaN, lambdaY);
   DenseMatrix<double> Y(my, n, y);
-  Z = Linalg<double>::Copy(Z);
+  LambdaZ = Linalg<double>::Copy(LambdaZ);
+  LambdaY = Linalg<double>::Copy(LambdaY);
   Y = Linalg<double>::Copy(Y);
   
+  Risk risk = FastCEM<double>::toRisk(riskI);
+  Penalty penalty = FastCEM<double>::toPenalty(penaltyI);
 
-  CEM<double> cem(Y, Z, knnY, knnX, sigmaY, sigmaX, sigmaAsFactor);
-  cem.gradDescent(iter, sZ, sBW, verbose, type, optimalSigmaX);
+  FastCEM<double> cem(Y, LambdaY, LambdaZ, knnX, sigmaY, sigmaX, sigmaAsFactor,
+      quadratic); 
+  cem.gradDescent(iter, nPoints, sZ, sBW, verbose, risk, penalty, optimalSigmaX);
   
   
 
@@ -56,8 +69,8 @@ SEXP cem_create(SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy, SEXP Rmz,
   PROTECT( list = Rf_allocVector(VECSXP, 3));
 
   SEXP Zopt;
-  PROTECT(Zopt = Rf_allocMatrix(REALSXP, mz, n));
-  memcpy( REAL(Zopt), cem.getZ().data(), mz*n*sizeof(double) );
+  PROTECT(Zopt = Rf_allocMatrix(REALSXP, lambdaM, lambdaN));
+  memcpy( REAL(Zopt), cem.getZ().data(), lambdaM * lambdaN * sizeof(double) );
   SET_VECTOR_ELT(list, 0, Zopt);
 
   SEXP sigmaXn;
@@ -82,46 +95,57 @@ SEXP cem_create(SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy, SEXP Rmz,
 
 
 
-SEXP cem_optimize(SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy, SEXP Rmz, SEXP RknnY,
-    SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX, SEXP Ri, SEXP RsZ, SEXP RsBW, SEXP
-    Rverbose, SEXP Rtype,  SEXP RoptimalSigmaX) {
-    
-  int verbose = *INTEGER(Rverbose); 
-  int knnY = *INTEGER(RknnY);
+SEXP cem_optimize_fast(SEXP Ry, SEXP Rn, SEXP Rmy, 
+    SEXP RlambdaY, SEXP RlambdaZ, SEXP RlambdaN, SEXP RlambdaM,
+    SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX, SEXP Ri, SEXP RnP, SEXP RsZ, SEXP
+    RsBW, SEXP Rverbose, SEXP Rrisk, SEXP Rpenalty, SEXP RoptimalSigmaX, SEXP Rquadratic) {
+  using namespace FortranLinalg;
+  
+  int verbose = *INTEGER(Rverbose);
   int knnX = *INTEGER(RknnX);
-  int n = *INTEGER(Rn);
-  int mz = *INTEGER(Rmz);
-  int my = *INTEGER(Rmy);
-  int type = *INTEGER(Rtype);
-  double *y = REAL(Ry);
-  double *z = REAL(Rz);
-  double sigmaY = *REAL(RsigmaY);
-  double sigmaX = *REAL(RsigmaX);
   int iter = *INTEGER(Ri);
+  int nPoints = *INTEGER(RnP);
+  int n = *INTEGER(Rn);
+  int lambdaM = *INTEGER(RlambdaM);
+  int lambdaN = *INTEGER(RlambdaN);
+  int my = *INTEGER(Rmy);
+  int riskI = *INTEGER(Rrisk);
+  int penaltyI = *INTEGER(Rpenalty);
+  
+  double *y = REAL(Ry);
+
+  double *lambdaZ = REAL(RlambdaZ);
+  double *lambdaY = REAL(RlambdaY);
+  
   double sZ = *REAL(RsZ);
   double sBW = *REAL(RsBW);
+  double sigmaY = *REAL(RsigmaY);
+  double sigmaX = *REAL(RsigmaX);
   bool optimalSigmaX = *INTEGER(RoptimalSigmaX);
-
-
-  DenseMatrix<double> Z(mz, n, z);
-  DenseMatrix<double> Y(my, n, y);
-  Z = Linalg<double>::Copy(Z);
-  Y = Linalg<double>::Copy(Y);
-
-  CEM<double> cem(Y, Z, knnY, knnX, sigmaY, sigmaX, false);
-  cem.gradDescent(iter, sZ, sBW, verbose, type, optimalSigmaX);
-
-
+  bool quadratic = *INTEGER(Rquadratic);
   
+  DenseMatrix<double> LambdaZ(lambdaM, lambdaN, lambdaZ);
+  DenseMatrix<double> LambdaY(my, lambdaN, lambdaY);
+  DenseMatrix<double> Y(my, n, y);
+  LambdaZ = Linalg<double>::Copy(LambdaZ);
+  LambdaY = Linalg<double>::Copy(LambdaY);
+  Y = Linalg<double>::Copy(Y);
+  
+  Risk risk = FastCEM<double>::toRisk(riskI);
+  Penalty penalty = FastCEM<double>::toPenalty(penaltyI);
 
 
+  FastCEM<double> cem(Y, LambdaY, LambdaZ, knnX, sigmaY, sigmaX, false,
+      quadratic); 
+  cem.gradDescent(iter, nPoints, sZ, sBW, verbose, risk, penalty, optimalSigmaX);
+    
     
   SEXP list;
   PROTECT( list = Rf_allocVector(VECSXP, 3));
 
   SEXP Zopt;
-  PROTECT(Zopt = Rf_allocMatrix(REALSXP, mz, n));
-  memcpy( REAL(Zopt), cem.getZ().data(), mz*n*sizeof(double) );
+  PROTECT(Zopt = Rf_allocMatrix(REALSXP, lambdaM, lambdaN));
+  memcpy( REAL(Zopt), cem.getZ().data(), lambdaM * lambdaN * sizeof(double) );
   SET_VECTOR_ELT(list, 0, Zopt);
 
   SEXP sigmaxn;
@@ -150,29 +174,35 @@ SEXP cem_optimize(SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy, SEXP Rmz, SEXP RknnY,
 
 
 
-SEXP cem_parametrize(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
-		SEXP Rmz, SEXP RknnY, SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX) {
-
+SEXP cem_parametrize_fast(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rn, SEXP Rmy, SEXP
+    RlambdaY, SEXP RlambdaZ, SEXP RlambdaN, SEXP RlambdaM, SEXP RknnX, SEXP
+    RsigmaY, SEXP RsigmaX, SEXP Rquadratic) {
+  using namespace FortranLinalg;
   
-  int knnY = *INTEGER(RknnY);
   int knnX = *INTEGER(RknnX);
   int n = *INTEGER(Rn);
-  int mz = *INTEGER(Rmz);
+  int lambdaM = *INTEGER(RlambdaM);
+  int lambdaN = *INTEGER(RlambdaN);
   int my = *INTEGER(Rmy);
   double *y = REAL(Ry);
-  double *z = REAL(Rz);
+
+  double *lambdaZ = REAL(RlambdaZ);
+  double *lambdaY = REAL(RlambdaY);
+  
   double sigmaY = *REAL(RsigmaY);
   double sigmaX = *REAL(RsigmaX);
+  bool quadratic = *INTEGER(Rquadratic);
   
-
-
-  
-  DenseMatrix<double> Z(mz, n, z);
+  DenseMatrix<double> LambdaZ(lambdaM, lambdaN, lambdaZ);
+  DenseMatrix<double> LambdaY(my, lambdaN, lambdaY);
   DenseMatrix<double> Y(my, n, y);
-  Z = Linalg<double>::Copy(Z);
+  LambdaZ = Linalg<double>::Copy(LambdaZ);
+  LambdaY = Linalg<double>::Copy(LambdaY);
   Y = Linalg<double>::Copy(Y);
-     
-  CEM<double> cem(Y, Z, knnY, knnX, sigmaY, sigmaX, false);
+  
+
+  FastCEM<double> cem(Y, LambdaY, LambdaZ, knnX, sigmaY, sigmaX, false, quadratic);
+    
   
   double *data = REAL(Rdata);
   int nd = *INTEGER(Rnd);
@@ -181,8 +211,8 @@ SEXP cem_parametrize(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
  
 
   SEXP Xnew;
-  PROTECT(Xnew = Rf_allocMatrix(REALSXP, mz, nd));
-  memcpy( REAL(Xnew), Xt.data(), mz*nd*sizeof(double) );
+  PROTECT(Xnew = Rf_allocMatrix(REALSXP, lambdaM, nd));
+  memcpy( REAL(Xnew), Xt.data(), lambdaM*nd*sizeof(double) );
   UNPROTECT(1);
   
   Xt.deallocate();
@@ -194,45 +224,54 @@ SEXP cem_parametrize(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
 
 
 
-SEXP cem_reconstruct(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
-    SEXP Rmz, SEXP RknnY, SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX) {
-   
-  int knnY = *INTEGER(RknnY);
+SEXP cem_reconstruct_fast(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rn, SEXP Rmy, 
+    SEXP RlambdaY, SEXP RlambdaZ, SEXP RlambdaN, SEXP RlambdaM,
+    SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX, SEXP
+    Rquadratic) {
+  using namespace FortranLinalg;
+  
   int knnX = *INTEGER(RknnX);
   int n = *INTEGER(Rn);
-  int nd = *INTEGER(Rnd);
-  int mz = *INTEGER(Rmz);
+  int lambdaM = *INTEGER(RlambdaM);
+  int lambdaN = *INTEGER(RlambdaN);
   int my = *INTEGER(Rmy);
   double *y = REAL(Ry);
-  double *data = REAL(Rdata);
-  double *z = REAL(Rz);
+
+  double *lambdaZ = REAL(RlambdaZ);
+  double *lambdaY = REAL(RlambdaY);
+  
   double sigmaY = *REAL(RsigmaY);
   double sigmaX = *REAL(RsigmaX);
-
-
+  bool quadratic = *INTEGER(Rquadratic);
   
-  DenseMatrix<double> Z(mz, n, z);
-  Z = Linalg<double>::Copy(Z);
+  DenseMatrix<double> LambdaZ(lambdaM, lambdaN, lambdaZ);
+  DenseMatrix<double> LambdaY(my, lambdaN, lambdaY);
   DenseMatrix<double> Y(my, n, y);
+  LambdaZ = Linalg<double>::Copy(LambdaZ);
+  LambdaY = Linalg<double>::Copy(LambdaY);
   Y = Linalg<double>::Copy(Y);
-  DenseMatrix<double> Xnew(mz, nd, data);
-  CEM<double> cem(Y, Z, knnY, knnX, sigmaY, sigmaX, false);
+  
 
-  DenseMatrix<double> *Ty = new DenseMatrix<double>[Z.M()];
-  for(int k=0; k<Z.M(); k++){
+  FastCEM<double> cem(Y, LambdaY, LambdaZ, knnX, sigmaY, sigmaX, false, quadratic);
+   
+  double *data = REAL(Rdata);
+  int nd = *INTEGER(Rnd);   
+  DenseMatrix<double> Xnew(lambdaM, nd, data);
+  DenseMatrix<double> *Ty = new DenseMatrix<double>[lambdaM];
+  for(unsigned int k=0; k<LambdaZ.M(); k++){
     Ty[k] = DenseMatrix<double>(Y.M(), Xnew.N());
   }
   DenseMatrix<double> Yt(Y.M(), Xnew.N());
 
   DenseVector<double> yp(Y.M());
-  DenseVector<double> xp(Z.M());
-  DenseMatrix<double> J(Y.M(), Z.M());
-  for(int i=0; i<Xnew.N(); i++){
+  DenseVector<double> xp(LambdaZ.M());
+  DenseMatrix<double> J(Y.M(), LambdaZ.M());
+  for(unsigned int i=0; i<Xnew.N(); i++){
 	  Linalg<double>::ExtractColumn(Xnew, i, xp);
 	  cem.g(xp, yp, J);
 	  Linalg<double>::SetColumn(Yt, i, yp);
 	  //Linalg<double>::QR_inplace(J);
-	  for(int j=0; j<J.N(); j++){
+	  for(unsigned int j=0; j<J.N(); j++){
 	    Linalg<double>::SetColumn(Ty[j], i, J, j);
 	  }
   }
@@ -241,7 +280,7 @@ SEXP cem_reconstruct(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
   J.deallocate();
 
   SEXP list;
-  PROTECT( list = Rf_allocVector(VECSXP, 1+Z.M()));
+  PROTECT( list = Rf_allocVector(VECSXP, 1+lambdaM));
 
   SEXP Ynew;
   PROTECT(Ynew = Rf_allocMatrix(REALSXP, my, nd));
@@ -249,7 +288,7 @@ SEXP cem_reconstruct(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
   SET_VECTOR_ELT(list, 0, Ynew);
   Yt.deallocate();
 
-  for(int i=0; i<Z.M(); i++){
+  for(int i=0; i<lambdaM; i++){
     SEXP Tnew;
     PROTECT( Tnew = Rf_allocMatrix(REALSXP, Y.M(), nd));
     memcpy( REAL(Tnew), Ty[i].data(), Y.M()*nd*sizeof(double) );
@@ -260,7 +299,7 @@ SEXP cem_reconstruct(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
   
 
   
-  UNPROTECT(2+Z.M());
+  UNPROTECT(2+lambdaM);
 
 
   cem.cleanup();
@@ -271,215 +310,62 @@ SEXP cem_reconstruct(SEXP Rdata, SEXP Rnd, SEXP Ry, SEXP Rz, SEXP Rn, SEXP Rmy,
 
 
 
-
-//CEM regression methods
-SEXP cemr_create(SEXP Ry, SEXP Rz, SEXP Rl, SEXP Rn, SEXP Rmy, SEXP Rmz, SEXP
-    Rml, SEXP RknnY, SEXP RknnX, SEXP Rf, SEXP Rlambda, SEXP Ri, SEXP Rs, SEXP Rverbose) {
+SEXP cem_geodesic_fast(SEXP Ry, SEXP Rn, SEXP Rmy, SEXP RlambdaY, SEXP RlambdaZ,
+    SEXP RlambdaN, SEXP RlambdaM, SEXP RknnX, SEXP RsigmaY, SEXP RsigmaX, SEXP
+    Ri, SEXP Rs, SEXP Rverbose,  SEXP Rquadratic, SEXP Rxs, SEXP Rxe,
+    SEXP Rns) {
+  using namespace FortranLinalg;
   
   int verbose = *INTEGER(Rverbose);
-  int knnY = *INTEGER(RknnY);
   int knnX = *INTEGER(RknnX);
   int iter = *INTEGER(Ri);
   int n = *INTEGER(Rn);
-  int mz = *INTEGER(Rmz);
-  int ml = *INTEGER(Rml);
+  int lambdaM = *INTEGER(RlambdaM);
+  int lambdaN = *INTEGER(RlambdaN);
   int my = *INTEGER(Rmy);
-  double *y = REAL(Ry);
-  double *z = REAL(Rz);
-  double *l = REAL(Rl);
-  double s = *REAL(Rs);
-  double fudge = *REAL(Rf);
-  double lambda = *REAL(Rlambda);
   
-  DenseMatrix<double> Z(mz, n, z);
-  DenseMatrix<double> L(ml, n, l);
+  double *y = REAL(Ry);
+
+  double *lambdaZ = REAL(RlambdaZ);
+  double *lambdaY = REAL(RlambdaY);
+  
+  double s = *REAL(Rs);
+  double sigmaY = *REAL(RsigmaY);
+  double sigmaX = *REAL(RsigmaX);
+  bool quadratic = *INTEGER(Rquadratic);
+  
+  double *xs = REAL(Rxs);
+  double *xe = REAL(Rxe);
+  int ns = *INTEGER(Rns);
+
+
+  DenseMatrix<double> LambdaZ(lambdaM, lambdaN, lambdaZ);
+  DenseMatrix<double> LambdaY(my, lambdaN, lambdaY);
   DenseMatrix<double> Y(my, n, y);
-  Z = Linalg<double>::Copy(Z);
-  L = Linalg<double>::Copy(L);
+  LambdaZ = Linalg<double>::Copy(LambdaZ);
+  LambdaY = Linalg<double>::Copy(LambdaY);
   Y = Linalg<double>::Copy(Y);
   
-  
-  CEMRegression<double> cemr(Y, Z, L, fudge, knnY, knnX, lambda);
-  cemr.gradDescent(iter,s, verbose);
 
-  //Store kernels
-  MahalanobisKernel<double> *kY = cemr.getKernelsY();
-  DenseMatrix<double> T(mz*my, n);
-  DenseMatrix<double> var(mz+1, n);
-  DenseMatrix<double> mean(my, n);
-  for(int i=0; i<n; i++){
-    MahalanobisKernelParam<double> &p = kY[i].getKernelParam();
-    for(int k = 0; k<mz; k++){
-      for(int j=0; j<my; j++){
-        T(k*my+j, i) = p.ev(j, k);
-      } 
-      var(k, i) = p.var(k);
-    }
-    var(mz, i) = p.varOrtho;
-    Linalg<double>::SetColumn(mean, i, p.mean);
-  }
+  FastCEM<double> cem(Y, LambdaY, LambdaZ, knnX, sigmaY, sigmaX, false,
+      quadratic); 
 
-    
-  SEXP list;
-  PROTECT( list = Rf_allocVector(VECSXP, 5));
-
-  SEXP Zopt;
-  PROTECT(Zopt = Rf_allocMatrix(REALSXP, mz, n));
-  memcpy( REAL(Zopt), cemr.getZ().data(), mz*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 0, Zopt);
-
-  SEXP sigma;
-  PROTECT(sigma = Rf_allocVector(REALSXP, 1));
-  double *sigmap = REAL(sigma);
-  sigmap[0] = cemr.getSigmaX();
-  SET_VECTOR_ELT(list, 1, sigma);
-
-  SEXP va;
-  PROTECT(va = Rf_allocMatrix(REALSXP, mz+1, n));
-  memcpy( REAL(va), var.data(), (mz+1)*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 2, va);
-  var.deallocate();
-
-  SEXP me;
-  PROTECT(me = Rf_allocMatrix(REALSXP, my, n));
-  memcpy( REAL(me), mean.data(), my*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 3, me);
-  mean.deallocate();
-  
-  SEXP Tnew;
-  PROTECT( Tnew= Rf_allocMatrix(REALSXP, Y.M()*mz, n));
-  memcpy( REAL(Tnew), T.data(), Y.M()*mz*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 4, Tnew);
-  T.deallocate();
-  
-  
-  
-  UNPROTECT(6);
-   
-  cemr.cleanup();
-
-  return list;  
+  int mz = LambdaZ.M(); 
+  DenseVector<double> xS(mz, xs);
+  DenseVector<double> xE(mz, xe);
+  DenseMatrix<double> geo = cem.geodesic(xS, xE, s, ns, iter);
  
-}
 
-
-
-//CEM regression methods
-SEXP cemr_optimize(SEXP Ry, SEXP Rz, SEXP Rl, SEXP Rn, SEXP Rmy, SEXP Rmz, SEXP
-    Rml, SEXP RknnY, SEXP RknnX, SEXP Rsigma, SEXP Rlambda, SEXP Ri, SEXP Rs,
-    SEXP Rverbose, SEXP RT, SEXP Rvar, SEXP Rmean) {
+  SEXP Xg;
+  PROTECT(Xg = Rf_allocMatrix(REALSXP, mz, ns));
+  memcpy( REAL(Xg), geo.data(), mz*ns*sizeof(double) );
+  UNPROTECT(1);
   
-  int verbose = *INTEGER(Rverbose);
-  int knnY = *INTEGER(RknnY);
-  int knnX = *INTEGER(RknnX);
-  int iter = *INTEGER(Ri);
-  int n = *INTEGER(Rn);
-  int mz = *INTEGER(Rmz);
-  int ml = *INTEGER(Rml);
-  int my = *INTEGER(Rmy);
-  double *y = REAL(Ry);
-  double *z = REAL(Rz);
-  double *l = REAL(Rl);
-  double s = *REAL(Rs);
-  double sigma = *REAL(Rsigma);
-  double lambda = *REAL(Rlambda);
+  geo.deallocate();
+  cem.cleanup();
   
-  DenseMatrix<double> Z(mz, n, z);
-  DenseMatrix<double> L(ml, n, l);
-  DenseMatrix<double> Y(my, n, y);
-  Z = Linalg<double>::Copy(Z);
-  L = Linalg<double>::Copy(L);
-  Y = Linalg<double>::Copy(Y);
-  
- 
-  double *t = REAL(RT);
-  double *var = REAL(Rvar);
-  double *mean = REAL(Rmean);
-  DenseMatrix<double> T(mz*my, n, t);
-  DenseMatrix<double> M(my, n, mean);
-  DenseMatrix<double> V(mz+1, n, var);
-  MahalanobisKernel<double> *kY = new MahalanobisKernel<double>[n];
-  for(int i=0; i<n; i++){
-    MahalanobisKernelParam<double> p;
-    p.mean = Linalg<double>::ExtractColumn(M, i);
-    p.varOrtho = V(mz, i);
-    p.ev = DenseMatrix<double>(my, mz);
-    p.var = DenseVector<double>(mz);
-    for(int k=0; k<mz; k++){ 
-      for(int j=0; j<my; j++){
-        p.ev(j, k) = T(k*my+j, i);
-      }
-      p.var(k) = V(k, i);
-    }
-    kY[i].setKernelParam(p);
-  }
-
- 
-  CEMRegression<double> cemr(Y, Z, L, knnY, knnX, sigma, lambda, kY);
-  cemr.gradDescent(iter, s, verbose);
-
-
-  //Store kernels
-  kY = cemr.getKernelsY();
-  DenseMatrix<double> Tn(mz*my, n);
-  DenseMatrix<double> varn(mz+1, n);
-  DenseMatrix<double> meann(my, n);
-  for(int i=0; i<n; i++){
-    MahalanobisKernelParam<double> &p = kY[i].getKernelParam();
-    for(int k = 0; k<mz; k++){
-      for(int j=0; j<my; j++){
-        Tn(k*my+j, i) = p.ev(j, k);
-      } 
-      varn(k, i) = p.var(k);
-    }
-    varn(mz, i) = p.varOrtho;
-    Linalg<double>::SetColumn(meann, i, p.mean);
-  }
-  
-
-
-
-    SEXP list;
-  PROTECT( list = Rf_allocVector(VECSXP, 5));
-
-  SEXP Zopt;
-  PROTECT(Zopt = Rf_allocMatrix(REALSXP, mz, n));
-  memcpy( REAL(Zopt), cemr.getZ().data(), mz*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 0, Zopt);
-
-  SEXP sigman;
-  PROTECT(sigman = Rf_allocVector(REALSXP, 1));
-  double *sigmap = REAL(sigman);
-  sigmap[0] = cemr.getSigmaX();
-  SET_VECTOR_ELT(list, 1, sigman);
-
-  SEXP va;
-  PROTECT(va = Rf_allocMatrix(REALSXP, mz+1, n));
-  memcpy( REAL(va), varn.data(), (mz+1)*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 2, va);
-  varn.deallocate();
-
-  SEXP me;
-  PROTECT(me = Rf_allocMatrix(REALSXP, my, n));
-  memcpy( REAL(me), meann.data(), my*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 3, me);
-  meann.deallocate();
-  
-  SEXP Tnew;
-  PROTECT( Tnew= Rf_allocMatrix(REALSXP, Y.M()*mz, n));
-  memcpy( REAL(Tnew), Tn.data(), Y.M()*mz*n*sizeof(double) );
-  SET_VECTOR_ELT(list, 4, Tnew);
-  Tn.deallocate();
-  
-  
-  
-  UNPROTECT(6);
-
-
-  cemr.cleanup();
-
-
-  return list;  
+  return Xg;  
+      
 }
 
 

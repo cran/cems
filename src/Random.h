@@ -38,7 +38,14 @@ class Random {
       Normal(s1, s2);
       s1*=sigma;
       s2*=sigma;
-    }
+    };
+
+    //Marsaglia
+    TPrecision Normal(){
+      TPrecision s1, s2;
+      Normal(s1, s2);
+      return s1;
+    };
 
 
 

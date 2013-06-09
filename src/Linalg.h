@@ -9,144 +9,27 @@
 #include <string.h>
 #include <iostream>
 #include <limits>
+#include <list>
 
 #include "Matrix.h"
 #include "DenseMatrix.h"
 #include "Vector.h"
 #include "DenseVector.h"
 
+#include "LapackDefs.h"
 
-#define isDoubleTPrecision() sizeof(TPrecision) == sizeof(double)
+
+
+namespace FortranLinalg{
+
+template<typename TPrecision>
+class Linalg{
 
 //Checks bounds for matrix multuiplications, etc.
 //make it slightly slower
 #define LINALG_CHECK
 
-//blas routines
-namespace blas{
-
-  extern "C"{
-
-  //---- matrix matrix multiply ----//
-  
-  void dgemm_(char *transa, char *transb, int *m, int *n, int *k,
-      double *alpha, double *A, int *lda, double *B, int *ldb, double *beta,
-      double *C, int *ldc);
-    
-  void sgemm_(char *transa, char *transb, int *m, int *n, int *k, 
-      float *alpha, float *A, int *lda, float *B, int *ldb, float *beta, 
-      float *C, int *ldc);
-  
-
-
-
-  //---- matrix vector multiply ----//
-  
-  void dgemv_(char *trans, int *m, int *n, double *alpha, double *A, int *lda, 
-      double *x, int *incx, double *beta, double *y, int *incy);
-    
-  void sgemv_(char *trans, int *m, int *n, float *alpha, float *A, int *lda, 
-      float *x, int *incx, float *beta, float *y, int *incy);
-
-
-
-
-
-  //---- dot product ----/
-  
-  double ddot_(int *m, double *x, int *incx, double *y, int *incy);
-
-  float sdot_(int *m, float *x, int *incx, float *y, int *incy);
-
-
-  //---- QR decomposition ----//
-  void dgeqrf_(int *m, int *n, double *a, int *lda, double *tau, double *work, int *lwork, int *info);
-  void sgeqrf_(int *m, int *n, float *a, int *lda, float *tau, float *work, int *lwork, int *info);
-
-  void dorgqr_(int *m, int *n, int *k, double *a, int *lda, double *tau, double *work, int *lwork, int *info);
-  void sorgqr_(int *m, int *n, int *k, float *a, int *lda, float *tau, float *work, int *lwork, int *info);
-
-  //---- LU decvomposition ----//
-  void dgetrf_(int * m, int *n, double *a, int *lda, int *ipiv, int *info);
-
-  void sgetrf_(int * m, int *n, float *a, int *lda, int *ipiv, int *info);
-  
-  //---- Cholesky decvomposition ----//
-  void dpotrf_(char *u, int *n, double *a, int *lda, int *info);
-
-  void spotrf_(char *u, int *n, float *a, int *lda, int *info);
-  
-  //---- inverse ---//
-  void dgetri_(int *n, double *a, int *lda, int *ipiv, double *work, int
-      *lwork, int *info);
-
-  void sgetri_(int *n, float *a, int *lda, int *ipiv, float *work, int
-      *lwork, int *info);
-
-
-  //---- inverse symmetric positive definite matrix ----/
-  
-  void dpotri_(char *uplo, int *n, double *A, int *lda, int *info);
-  
-  void spotri_(char *uplo, int *n, float *A, int *lda, int *info);
-
-  //---- Solve SPD linear equations ----//
-
-  void dposv_(char *uplo, int *n, int *nrhs, double *A, int *lda, double *B,
-      int *ldb, int *info );
-
-  void sposv_(char *uplo, int *n, int *nrhs, float *A, int *lda, float *B,
-      int *ldb, int *info );
-
-  void dposvx_( char *fact, char *uplo, int *n, int *nrhs, double *A, int *lda,
-      double *af, int *ldaf, char *equed, double *s, double *b, int *ldb, double
-      *x, int *ldx, double *rcond, double *ferr, double *berr, double *work,
-      int *iwork, int *info );
-  
-  void sposvx_( char *fact, char *uplo, int *n, int *nrhs, float *A, int *lda,
-      float *af, int *ldaf, char *equed, float *s, float *b, int *ldb, float
-      *x, int *ldx, float *rcond, float *ferr, float *berr, float *work,
-      int *iwork, int *info );
-
-  //---- Solve linear equations ----/
-  
-  void dgesv_( int *n, int *nrhs, double *A, int *lda, int *ipiv, double *b, int
-      *ldb, int *info );
-
-  void sgesv_( int *n, int *nrhs, float *A, int *lda, int *ipiv, float *b, int
-      *ldb, int *info );
-
-  //---- Least squares  or minimum norm with QR or LQ, A is assumed to have full rank----// 
-  void dgels_(char *trans, int *m, int *n, int *nhrs, double *A, int *lda, double
-      *B, int *ldb, double *work, int *lwork, int *info);
-
-  void sgels_(char *trans, int *m, int *n, int *nhrs, float *A, int *lda, float 
-      *B, int *ldb, float *work, int *lwork, int *info);
-
-  //---- Least squares  or minimum norm with SVD// 
-  void dgelsd_(int *m, int *n, int *nhrs, double *A, int *lda, double
-      *B, int *ldb, double *S, double *rcond, int *rank, double *work, int
-      *lwork, int *iwork, int *info);
-
-  void sgelsd_(int *m, int *n, int *nhrs, float *A, int *lda, float
-      *B, int *ldb, float *S, float *rcond, int *rank, float *work, int *lwork,
-      int *iwork, int *info);
-
-
-  //--- Cholesky condition number ---//
-  void dpocon(char *uplo, int *n, double *a, int *lda, double *anorm, double
-      *rcond, double *work, int *iwork, int *info);
-  
-  void spocon(char *uplo, int *n, float *a, int *lda, float *anorm, float
-      *rcond, float *work, int *iwork, int *info);
-
-  };
-};
-
-
-template<typename TPrecision>
-class Linalg{
-
+#define isDoubleTPrecision() sizeof(TPrecision) == sizeof(double)
 
   public:
 
@@ -186,26 +69,26 @@ class Linalg{
     int *iwork = new int[100*std::min(m,n)];
     
     if(isDoubleTPrecision()){
-      blas::dgelsd_(&m, &n, &nrhs, (double*)a.data(), &lda,
+      lapack::dgelsd_(&m, &n, &nrhs, (double*)a.data(), &lda,
           (double*)tmp.data(), &ldb,  (double*)s, (double*)&rcond, &rank,
           (double*)&workTmp, &query, iwork, &info);
 
       int lwork = workTmp;
       double *work =new double[lwork];
-      blas::dgelsd_(&m, &n, &nrhs, (double*)a.data(), &lda,
+      lapack::dgelsd_(&m, &n, &nrhs, (double*)a.data(), &lda,
           (double*)tmp.data(), &ldb,  (double*)s, (double*)&rcond, &rank,
           (double*)work, &lwork, iwork, &info);
       delete[] work;
     }
     else{
-      blas::sgelsd_(&m, &n, &nrhs, (float*)a.data(), &lda,
+      lapack::sgelsd_(&m, &n, &nrhs, (float*)a.data(), &lda,
           (float*)tmp.data(), &ldb,  (float*)s, (float*)&rcond, &rank,
           (float*)&workTmp, &query, iwork, &info);
 
       int lwork = workTmp;
       float *work =new float[lwork];
  
-      blas::sgelsd_(&m, &n, &nrhs, (float*)a.data(), &lda,
+      lapack::sgelsd_(&m, &n, &nrhs, (float*)a.data(), &lda,
           (float*)tmp.data(), &ldb,  (float*)s, (float*)&rcond, &rank,
           (float*)work, &lwork, iwork, &info);
       delete[] work;
@@ -264,10 +147,10 @@ class Linalg{
     
 
     if(isDoubleTPrecision()){
-      blas::dgesv_(&n, &nrhs, (double*)a.data(), &lda, ipiv, (double*)b.data(), &ldb, &info);
+      lapack::dgesv_(&n, &nrhs, (double*)a.data(), &lda, ipiv, (double*)b.data(), &ldb, &info);
     }
     else{ 
-      blas::sgesv_(&n, &nrhs, (float*)a.data(), &lda, ipiv, (float*)b.data(), &ldb, &info);
+      lapack::sgesv_(&n, &nrhs, (float*)a.data(), &lda, ipiv, (float*)b.data(), &ldb, &info);
     }
 
     delete[] ipiv;
@@ -305,10 +188,10 @@ class Linalg{
     
 
     if(isDoubleTPrecision()){
-      blas::dposv_(&u, &n, &nrhs, (double*)a.data(), &lda, (double*)b.data(), &ldb, &info);
+      lapack::dposv_(&u, &n, &nrhs, (double*)a.data(), &lda, (double*)b.data(), &ldb, &info);
     }
     else{ 
-      blas::sposv_(&u, &n, &nrhs, (float*)a.data(), &lda, (float*)b.data(), &ldb, &info);
+      lapack::sposv_(&u, &n, &nrhs, (float*)a.data(), &lda, (float*)b.data(), &ldb, &info);
     }
 
     return info == 0;
@@ -338,13 +221,13 @@ class Linalg{
 
 
     if(isDoubleTPrecision()){
-      blas::dposvx_(&fact, &u, &n, &nrhs, (double*)a.data(), &lda,
+      lapack::dposvx_(&fact, &u, &n, &nrhs, (double*)a.data(), &lda,
       (double*) af, &ldaf, &equed, (double*) s, (double*) b.data(), &ldb, 
       (double*) x, &ldx, (double*)&rcond, (double*)ferr, (double*)berr, (double*)work,
       iwork, &info );   
     }
     else{ 
-      blas::sposvx_(&fact, &u, &n, &nrhs, (float*)a.data(), &lda,
+      lapack::sposvx_(&fact, &u, &n, &nrhs, (float*)a.data(), &lda,
       (float*) af, &ldaf, &equed, (float*) s, (float*) b.data(), &ldb, 
       (float*) x, &ldx, (float*)&rcond, (float*)ferr, (float*)berr, (float*)work,
       iwork, &info );   
@@ -411,10 +294,10 @@ class Linalg{
     int info = 0;
     
     if(isDoubleTPrecision()){
-      blas::dgetrf_(&m, &n, (double*) lu.data(), &lda, ipiv, &info);
+      lapack::dgetrf_(&m, &n, (double*) lu.data(), &lda, ipiv, &info);
     }
     else{
-      blas::sgetrf_(&m, &n, (float*) lu.data(), &lda, ipiv, &info);
+      lapack::sgetrf_(&m, &n, (float*) lu.data(), &lda, ipiv, &info);
     }
 
     if(clear){
@@ -436,6 +319,7 @@ class Linalg{
     return q;    
   };
 
+  
   static void QR_inplace(DenseMatrix<TPrecision> &q){
     int n = q.N();
     int m = q.M();
@@ -447,46 +331,49 @@ class Linalg{
 
     //workspace query
     if(isDoubleTPrecision()){
-       blas::dgeqrf_(&m, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
+       lapack::dgeqrf_(&m, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
     }
     else{ 
-       blas::sgeqrf_(&m, &n, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
+       lapack::sgeqrf_(&m, &n, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
     }
     if(info !=0 ){
-      std::cerr << "QRF workspace error: " << info << std::endl;
+      //std::cerr << "QRF workspace error: " << info << std::endl;
     }
 
     lwork = work[0];
-    delete work;
+    delete[] work;
     work = new TPrecision[lwork];
 
     //qr
     if(isDoubleTPrecision()){
-      blas::dgeqrf_(&m, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
+      lapack::dgeqrf_(&m, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
       if(info !=0 ){
-        std::cerr << "QRF error: " << info << std::endl;
+        //std::cerr << "QRF error: " << info << std::endl;
       }
 
-      blas::dorgqr_(&m, &n, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
+      n = std::min(m, n);
+      lapack::dorgqr_(&m, &n, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
       if(info !=0 ){
-        std::cerr << "QR error: " << info << std::endl;
+        //std::cerr << "QR error: " << info << std::endl;
       }
     }
     else{
-      blas::sgeqrf_(&m, &n, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
+      lapack::sgeqrf_(&m, &n, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
       if(info !=0 ){
-        std::cerr << "QRF error: " << info << std::endl;
+        //std::cerr << "QRF error: " << info << std::endl;
       }
 
-      blas::sorgqr_(&m, &n, &n, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
+      n = std::min(m, n);
+      lapack::dorgqr_(&m, &n, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
+      lapack::sorgqr_(&m, &n, &n, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
       if(info !=0 ){
-        std::cerr << "QR error: " << info << std::endl;
+        //std::cerr << "QR error: " << info << std::endl;
       }
     }
 
 
-    delete work;
-    delete tau;
+    delete[] work;
+    delete[] tau;
   };
 
 
@@ -499,10 +386,10 @@ class Linalg{
     int info = 0;
     
     if(isDoubleTPrecision()){
-      blas::dpotrf_(&uplo, &n, (double*) ch.data(), &lda, &info);
+      lapack::dpotrf_(&uplo, &n, (double*) ch.data(), &lda, &info);
     }
     else{ 
-      blas::spotrf_(&uplo, &n, (float*) ch.data(), &lda, &info);
+      lapack::spotrf_(&uplo, &n, (float*) ch.data(), &lda, &info);
     }
 
     if(info !=0 ){
@@ -532,10 +419,10 @@ class Linalg{
     int lwork = -1;
 
     if(isDoubleTPrecision()){
-      blas::dgetri_(&n, (double*)inv.data(), &lda, ipiv,(double*) work, &lwork, &info);
+      lapack::dgetri_(&n, (double*)inv.data(), &lda, ipiv,(double*) work, &lwork, &info);
     }
     else{
-      blas::sgetri_(&n, (float*)inv.data(), &lda, ipiv, (float*) work, &lwork, &info);
+      lapack::sgetri_(&n, (float*)inv.data(), &lda, ipiv, (float*) work, &lwork, &info);
     }
 
     lwork = work[0];
@@ -543,10 +430,10 @@ class Linalg{
     work = new TPrecision[lwork];
 
     if(isDoubleTPrecision()){
-      blas::dgetri_(&n, (double*)inv.data(), &lda, ipiv, (double*)work, &lwork, &info);
+      lapack::dgetri_(&n, (double*)inv.data(), &lda, ipiv, (double*)work, &lwork, &info);
     }
     else{
-      blas::sgetri_(&n, (float*)inv.data(), &lda, ipiv, (float*)work, &lwork, &info);
+      lapack::sgetri_(&n, (float*)inv.data(), &lda, ipiv, (float*)work, &lwork, &info);
     }
 
 
@@ -583,10 +470,10 @@ class Linalg{
     int lda = n;
     int info = 0;
     if(isDoubleTPrecision()){
-      blas::dpotri_(&u, &n, (double*)inv.data(), &lda, &info);
+      lapack::dpotri_(&u, &n, (double*)inv.data(), &lda, &info);
     }
     else{
-      blas::spotri_(&u, &n, (float*)inv.data(), &lda, &info);
+      lapack::spotri_(&u, &n, (float*)inv.data(), &lda, &info);
     }
 
     for(int i=0; i<n;i++){
@@ -596,7 +483,7 @@ class Linalg{
     }
  
     if(info !=0 ){
-      //std::cerr << "InverseSPD error: " << info << std::endl;
+      //std::cerr << "InverseCholesky error: " << info << std::endl;
     }
 
   };
@@ -662,11 +549,11 @@ class Linalg{
     
 
     if(isDoubleTPrecision()){
-      blas::dgemm_(&transa, &transb, &m, &n, &k, (double*)&alpha, (double*)a.data(),
+      lapack::dgemm_(&transa, &transb, &m, &n, &k, (double*)&alpha, (double*)a.data(),
           &lda, (double*)b.data(), &ldb, (double*)&beta, (double*)c.data(), &m);
     }
     else{
-      blas::sgemm_(&transa, &transb, &m, &n, &k, (float*)&alpha, (float*)a.data(), &m,
+      lapack::sgemm_(&transa, &transb, &m, &n, &k, (float*)&alpha, (float*)a.data(), &m,
                    (float*)b.data(), &ldb, (float*)&beta, (float*)c.data(), &m);
     }
   }; 
@@ -746,11 +633,11 @@ class Linalg{
 
     int inc = 1;
     if(isDoubleTPrecision()){
-      blas::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
+      lapack::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
           &lda, (double*)v.data(), &inc, (double*)&beta, (double*)out.data(), &inc);
     }
     else{
-      blas::sgemv_(&transa,  &ma, &na, (float*)&alpha, (float*)a.data(),
+      lapack::sgemv_(&transa,  &ma, &na, (float*)&alpha, (float*)a.data(),
           &lda, (float*)v.data(), &inc, (float*)&beta, (float*)out.data(), &inc);
     }
   }; 
@@ -800,11 +687,11 @@ class Linalg{
     int inc = 1;
 
     if(isDoubleTPrecision()){
-      blas::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
+      lapack::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
           &lda, (double*)v, &vinc, (double*)&beta, (double*)out.data(), &inc);
     }
     else{
-      blas::sgemv_(&transa,  &ma, &na, (float*)&alpha, (float*)a.data(),
+      lapack::sgemv_(&transa,  &ma, &na, (float*)&alpha, (float*)a.data(),
           &lda, (float*)v, &vinc, (float*)&beta, (float*)out.data(), &inc);
     }
   }; 
@@ -862,11 +749,11 @@ class Linalg{
     int inc = 1;
 
     if(isDoubleTPrecision()){
-      blas::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
+      lapack::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
           &lda, (double*)v, &vinc, (double*)&beta, (double*)out.data(), &inc);
     }
     else{
-      blas::sgemv_(&transa,  &ma, &na, (float*)&alpha, (float*)a.data(),
+      lapack::sgemv_(&transa,  &ma, &na, (float*)&alpha, (float*)a.data(),
           &lda, (float*)v, &vinc, (float*)&beta, (float*)out.data(), &inc);
     }
 
@@ -888,10 +775,10 @@ class Linalg{
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
-       res = (TPrecision) blas::ddot_(&n, (double *)x.data(), &inc, (double*)y.data(), &inc);
+       res = (TPrecision) lapack::ddot_(&n, (double *)x.data(), &inc, (double*)y.data(), &inc);
      }
      else{
-       res = (TPrecision) blas::sdot_( &n, (float*)x.data(), &inc, (float*)y.data(), &inc);
+       res = (TPrecision) lapack::sdot_( &n, (float*)x.data(), &inc, (float*)y.data(), &inc);
      }
      return res;
    }; 
@@ -910,10 +797,10 @@ class Linalg{
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
-       res = (TPrecision) blas::ddot_(&n, (double *)v, &vinc, (double*)y.data(), &inc);
+       res = (TPrecision) lapack::ddot_(&n, (double *)v, &vinc, (double*)y.data(), &inc);
      }
      else{
-       res = (TPrecision) blas::sdot_(&n, (float*)v, &vinc, (float*)y.data(), &inc);
+       res = (TPrecision) lapack::sdot_(&n, (float*)v, &vinc, (float*)y.data(), &inc);
      }
      return res;
    }; 
@@ -937,10 +824,10 @@ class Linalg{
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
-       res = (TPrecision) blas::ddot_(&n, (double*)v, &vinc, (double*)y.data(), &inc);
+       res = (TPrecision) lapack::ddot_(&n, (double*)v, &vinc, (double*)y.data(), &inc);
      }
      else{
-       res = (TPrecision) blas::sdot_(&n, (float*)v, &vinc, (float*)y.data(), &inc);
+       res = (TPrecision) lapack::sdot_(&n, (float*)v, &vinc, (float*)y.data(), &inc);
      }
      return res;
    }; 
@@ -975,10 +862,10 @@ class Linalg{
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
-       res = (TPrecision) blas::ddot_(&n, (double*)v, &vinc, (double*)w, &winc);
+       res = (TPrecision) lapack::ddot_(&n, (double*)v, &vinc, (double*)w, &winc);
      }
      else{
-       res = (TPrecision) blas::sdot_(&n, (float*)v, &vinc,(float*)w, &winc);
+       res = (TPrecision) lapack::sdot_(&n, (float*)v, &vinc,(float*)w, &winc);
      }
      return res;
    }; 
@@ -1018,10 +905,10 @@ class Linalg{
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
-       res = (TPrecision) blas::ddot_(&n, (double*)v, &vinc, (double*)w, &winc);
+       res = (TPrecision) lapack::ddot_(&n, (double*)v, &vinc, (double*)w, &winc);
      }
      else{
-       res = (TPrecision) blas::sdot_(&n, (float*)v, &vinc,(float*)w, &winc);
+       res = (TPrecision) lapack::sdot_(&n, (float*)v, &vinc,(float*)w, &winc);
      }
      return res;
    }; 
@@ -1037,22 +924,22 @@ class Linalg{
 
       TPrecision *w = y.data();
       int winc = 1;
-      if(y.isRowMajor()){
-        w = &v[yindex];
-        winc = y.N();
-      }
-      else{
+     // if(y.isRowMajor()){
+      //  w = &v[yindex];
+      //  winc = y.N();
+      //}
+      //else{
         w = &w[yindex*y.M()];
-      }
+      //}
 
      int n = x.M();
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
-       res = (TPrecision) blas::ddot_(&n, (double*)v, &vinc, (double*)w, &winc);
+       res = (TPrecision) lapack::ddot_(&n, (double*)v, &vinc, (double*)w, &winc);
      }
      else{
-       res = (TPrecision) blas::sdot_(&n, (float*)v, &vinc,(float*)w, &winc);
+       res = (TPrecision) lapack::sdot_(&n, (float*)v, &vinc,(float*)w, &winc);
      }
      return res;
    }; 
@@ -1089,16 +976,31 @@ class Linalg{
     return v;
   };
   
-
+  static DenseMatrix<TPrecision> ExtractColumns(Matrix<TPrecision> &a, unsigned int start, unsigned int end){
+    DenseMatrix<TPrecision> m(a.M(), end-start);
+    for(unsigned int i=0; i<end-start; i++){
+      for(unsigned int j=0; j< a.M(); j++){
+        m(j,i) = a(j, start+i);
+      }
+    }
+    return m;
+  };
 
 
   static void ExtractColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
-    for(unsigned int i=0; i<a.M(); i++){
+    for(unsigned int i=0; i<std::min(a.M(),v.N()); i++){
       v(i) = a(i, index);
     }
   };
   
 
+  static DenseVector<TPrecision> ExtractRow(Matrix<TPrecision> &a, int index){
+    DenseVector<TPrecision> v(a.N());
+    for(unsigned int i=0; i<a.N(); i++){
+      v(i) = a(index, i);
+    }
+    return v;
+  };
 
 
   static void ExtractRow(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
@@ -1111,21 +1013,45 @@ class Linalg{
 
 
   static void SetColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
-    for(unsigned int i=0; i<a.M(); i++){
+    for(unsigned int i=0; i < std::min(a.M(), v.N()); i++){
       a(i, index) = v(i);
     }
   };
+  
+  
+  static void SetColumns(Matrix<TPrecision> &T, int s1, int e1, DenseMatrix<TPrecision> &F, int s2){
+    for(unsigned int i=0; i< e1-s1; i++){
+      for(int j=0; j<T.M(); j++){
+        T(j, s1+i) = F(j, s2+i);
+      }
+    }
+  };
+
 
   static void SetRow(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
-    for(unsigned int i=0; i<a.N(); i++){
+    for(unsigned int i=0; i<std::min(a.N(), v.N()); i++){
       a(index, i) = v(i);
+    }
+  };
+
+  
+  static void SetColumn(Matrix<TPrecision> &a, int index, TPrecision v){
+    for(unsigned int i=0; i < a.M(); i++){
+      a(i, index) = v;
+    }
+  };
+
+  static void SetRow(Matrix<TPrecision> &a, int index, TPrecision v){
+    for(unsigned int i=0; i<a.N(); i++){
+      a(index, i) = v;
     }
   }; 
 
 
+
   static void SetColumn(Matrix<TPrecision> &a, int aindex,
       DenseMatrix<TPrecision> &b, int bindex){
-    for(unsigned int i=0; i<a.M(); i++){
+    for(unsigned int i=0; i<std::min(a.M(), b.M()); i++){
       a(i, aindex) = b(i, bindex);
     }
   };
@@ -1134,7 +1060,7 @@ class Linalg{
 
   static void SetRow(Matrix<TPrecision> &a, int aindex,
       DenseMatrix<TPrecision> &b, int bindex){
-    for(unsigned int i=0; i<a.N(); i++){
+    for(unsigned int i=0; i<std::min(a.N(), b.N()); i++){
       a(aindex, i) = b(bindex, i);
     }
   };
@@ -1142,7 +1068,7 @@ class Linalg{
 
   static void SetRowFromColumn(Matrix<TPrecision> &a, int aindex,
       DenseMatrix<TPrecision> &b, int bindex){
-    for(unsigned int i=0; i<a.N(); i++){
+    for(unsigned int i=0; i<std::min(a.N(), b.M()); i++){
       a(aindex, i) = b(i, bindex);
     }
   };
@@ -1165,7 +1091,35 @@ class Linalg{
         }
       }
   };
+
   
+  static double SumColumn(Matrix<TPrecision> &a, int index){
+    double sum = 0;
+    for(unsigned int i=0; i < a.M(); i++){
+      sum += a(i, index);
+    }
+    return sum;
+  };
+  
+ 
+  static double Sum(Vector<TPrecision> &a){
+    double sum = 0;
+    for(unsigned int i=0; i < a.N(); i++){
+      sum += a(i);
+    }
+    return sum;
+  };
+   
+  static double Sum(Matrix<TPrecision> &a){
+    double sum = 0;
+    for(unsigned int i=0; i < a.M(); i++){
+      for(unsigned int j=0; j < a.N(); j++){
+        sum += a(i,j);
+      }
+    }
+    return sum;
+  };
+    
 
 
   static DenseVector<TPrecision> SumRows(Matrix<TPrecision> &a){
@@ -1211,13 +1165,19 @@ class Linalg{
 
 
   static void SubtractColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v,
-      Matrix<TPrecision> &out){
+      Matrix<TPrecision> &out)  {
       for(unsigned int i=0; i < a.M(); i++){
         out(i, index) = a(i, index) - v(i);
       }
   };
 
 
+  static void AddColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v,
+      Matrix<TPrecision> &out){
+      for(unsigned int i=0; i < a.M(); i++){
+        out(i, index) = a(i, index) + v(i);
+      }
+  };
 
   static void SubtractRowwise(Matrix<TPrecision> &a, Vector<TPrecision> &v,
       Matrix<TPrecision> &out){
@@ -1304,6 +1264,21 @@ class Linalg{
     }    
   };
 
+  static void AddScale(Matrix<TPrecision> &a, int i1, TPrecision s, Vector<TPrecision> &b,
+      Vector<TPrecision> &result){
+    for(unsigned int i = 0; i < a.M(); i++){
+      result(i) = a(i,i1) + s * b(i);
+    }    
+  };
+
+  static void AddScale(Matrix<TPrecision> &a, int i1, TPrecision s, Matrix<TPrecision> &b, int i2,
+      Vector<TPrecision> &result){
+    for(unsigned int i = 0; i < a.M(); i++){
+      result(i) = a(i,i1) + s * b(i, i2);
+    }    
+  };
+
+
   
   static void AddScale(Matrix<TPrecision> &a, TPrecision s, Matrix<TPrecision> &b, Matrix<TPrecision> &result){
     for(unsigned int i = 0; i < a.M(); i++){
@@ -1330,6 +1305,11 @@ class Linalg{
     }    
   };
 
+  static void ColumnAddScale(DenseMatrix<TPrecision> &m, int i1, TPrecision s, DenseMatrix<TPrecision> &b, int i2){
+    for(unsigned int i = 0; i < m.M(); i++){
+      m(i, i1) = m(i, i1) + s * b(i, i2);
+    }    
+  };
 
 
   static DenseVector<TPrecision> ColumnwiseSquaredNorm(Matrix<TPrecision> &A){
@@ -1343,7 +1323,7 @@ class Linalg{
       TPrecision norm =0;
       TPrecision tmp =0;
       for(unsigned int j=0; j<A.M(); j++){
-	tmp = A(j, i);
+	      tmp = A(j, i);
         norm += tmp *tmp;
       }
       v(i) = norm;
@@ -1377,6 +1357,16 @@ class Linalg{
       result(i) = a(i) - b;
     }    
   };
+
+    //result = a - b
+  static void Subtract(Matrix<TPrecision> &a, TPrecision b, Matrix<TPrecision> &result){
+    for(unsigned int i = 0; i < a.M(); i++){
+      for(unsigned int j = 0; j < a.N(); j++){
+        result(i,j) = a(i, j) - b;
+      }
+    }    
+  };
+
   //result = a - b
   static void Add(Vector<TPrecision> &a, TPrecision b, Vector<TPrecision> &result){
     for(unsigned int i = 0; i < a.N(); i++){
@@ -1389,7 +1379,7 @@ class Linalg{
 
   //result = a - b
   static void Subtract(Vector<TPrecision> &a, Vector<TPrecision> &b, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.N(); i++){
+    for(unsigned int i = 0; i < std::min(a.N(), b.N()); i++){
       result(i) = a(i) - b(i);
     }    
   };
@@ -1440,8 +1430,8 @@ class Linalg{
 
 
   static void Copy(Matrix<TPrecision> &from, Matrix<TPrecision> &to){
-    for(unsigned int i = 0; i < from.N(); i++){
-      for(unsigned int j= 0; j < from.M(); j++){
+    for(unsigned int i = 0; i < std::min(from.N(), to.N()); i++){
+      for(unsigned int j= 0; j < std::min(from.M(), to.M()); j++){
         to(j, i) = from(j, i);
       }
     } 
@@ -1450,7 +1440,7 @@ class Linalg{
 
   static void CopyColumn(Matrix<TPrecision> &from, unsigned int fi, Matrix<TPrecision>
       &to, unsigned int ti){
-    for(unsigned int j= 0; j < from.M(); j++){
+    for(unsigned int j= 0; j < std::min(from.M(), to.M()); j++){
       to(j, ti) = from(j, fi);
     }
   };
@@ -1467,7 +1457,7 @@ class Linalg{
 
 
   static void Copy(Vector<TPrecision> &from, Vector<TPrecision> &to){
-    for(unsigned int i = 0; i < from.N(); i++){
+    for(unsigned int i = 0; i < std::min( from.N(), to.N() ); i++){
       to(i) = from(i);
     } 
   };
@@ -1479,6 +1469,21 @@ class Linalg{
       l += v(i, index) * v(i, index);
     }  
     return l;
+  };
+
+
+  static DenseVector<TPrecision> ColumnLengths(Matrix<TPrecision> &X){
+    DenseVector<TPrecision> l(X.N());
+    for(int i=0; i<l.N(); i++){
+      l(i) = LengthColumn(X, i);
+    }
+    return l;
+  };  
+  
+  static void ColumnLengths(Matrix<TPrecision> &X, DenseVector<TPrecision> &l){
+    for(int i=0; i<l.N(); i++){
+      l(i) = LengthColumn(X, i);
+    }
   };
 
   static TPrecision LengthColumn(Matrix<TPrecision> &v, int index){
@@ -1605,20 +1610,39 @@ class Linalg{
         l = 0;
       }
       Scale(v, l, v);
+  };
+  
+  static void NormalizeColumns(Matrix<TPrecision> &m){
+    for(int i=0; i< m.N(); i++){
+      NormalizeColumn(m, i);
+    }
+  };
+
+  static void NormalizeColumn(Matrix<TPrecision> &V, int index){
+      TPrecision l = 1.0/LengthColumn(V, index);
+      if( l!=l || 
+          std::numeric_limits<TPrecision>::infinity() == l ){
+        l = 0;
+      }
+      ScaleColumn(V, index, l);
   }; 
   
 
 
 
-  static void ScaleColumn(DenseMatrix<TPrecision> &m, int index, TPrecision s){
+  static void ScaleColumn(Matrix<TPrecision> &m, int index, TPrecision s){
     for(unsigned int i=0; i < m.M(); i++){
       m(i,index) = m(i, index) * s;
     }
   };
 
   static void ScaleRow(DenseMatrix<TPrecision> &m, int index, TPrecision s){
+    ScaleRow(m, index, s, m);
+  };
+  
+  static void ScaleRow(DenseMatrix<TPrecision> &m, int index, TPrecision s, DenseMatrix<TPrecision> &out){
     for(unsigned int i=0; i < m.N(); i++){
-      m(index, i) = m(index, i) * s;
+      out(index, i) = m(index, i) * s;
     }
   };
 
@@ -1705,12 +1729,16 @@ class Linalg{
 
   static DenseMatrix<TPrecision> Transpose(DenseMatrix<TPrecision> A){
     DenseMatrix<TPrecision> B(A.N(), A.M());
+    Transpose(A, B); 
+    return B;
+  };
+
+  static void Transpose(DenseMatrix<TPrecision> A, DenseMatrix<TPrecision> B){
     for(unsigned int i=0; i<A.M(); i++){
       for(unsigned int j=0; j<A.N(); j++){
         B(j, i) = A(i, j);
       }
     }
-    return B;
   };
 
 
@@ -1754,6 +1782,36 @@ class Linalg{
   };
 
 
+  static TPrecision MaxAll(Matrix<TPrecision> &A){
+    TPrecision m = -std::numeric_limits<TPrecision>::max();
+    for(unsigned  int i=0;i<A.N(); i++){
+      for(unsigned int j=0; j<A.M(); j++){
+        if(A(j, i) > m){
+          m = A(j, i);
+        }
+      }
+    }
+    return m;
+  };
+
+  static TPrecision MinAll(Matrix<TPrecision> &A){
+    TPrecision m = std::numeric_limits<TPrecision>::max();
+    for(unsigned  int i=0;i<A.N(); i++){
+      for(unsigned int j=0; j<A.M(); j++){
+        if(A(j, i) < m){
+          m = A(j, i);
+        }
+      }
+    }
+    return m;
+  };
+
+
+
+
+
+
+
   static TPrecision Max(Vector<TPrecision> &A){
     TPrecision m = A(0);
     for(unsigned int i=0;i<A.N(); i++){
@@ -1774,6 +1832,136 @@ class Linalg{
     return m;
   };
 
+
+  static TPrecision MaxColumn(Matrix<TPrecision> &A, int index){
+    TPrecision m = A(0, index);
+    for(unsigned int i=1;i<A.M(); i++){
+        if(A(i, index) > m){
+          m = A(i, index);
+        }
+    }
+    return m;
+  };
+  
+  static TPrecision MinColumn(Matrix<TPrecision> &A, int index){
+    TPrecision m = A(0, index);
+    for(unsigned int i=1;i<A.M(); i++){
+        if(A(i, index) < m){
+          m = A(i, index);
+        }
+    }
+    return m;
+  };
+
+
+
+
+  static void Print(DenseMatrix<TPrecision> &m){
+    for(int i=0; i<m.M(); i++){
+      for(int j=0; j< m.N(); j++){
+        std::cout << m(i, j) << ", ";
+      }
+      std::cout << std::endl;
+    }
+  };
+
+    static void Print(DenseVector<TPrecision> &v){
+      for(int j=0; j< v.N(); j++){
+        std::cout << v(j) << ", ";
+      }
+      std::cout << std::endl;
+  };
+
+
+
+  static DenseMatrix<TPrecision> ToMatrix(std::list< DenseVector<TPrecision> > v){
+    DenseMatrix<TPrecision> res;
+    if( v.empty() ){
+      return res;
+    }
+
+    typename std::list< DenseVector<TPrecision> >::iterator it = v.begin();
+    res = DenseMatrix<TPrecision>( (*it).N(), v.size() );
+    for(int i=0; it != v.end(); ++it, ++i){
+      Linalg<TPrecision>::SetColumn(res, i, *it);
+    }
+    return res;
+  };
+
+ static DenseVector<TPrecision> ToVector(std::list< TPrecision > v){
+    DenseVector<TPrecision> res;
+    if( v.empty() ){
+      return res;
+    }
+
+    res = DenseVector<TPrecision>( v.size() );
+    typename std::list< TPrecision>::iterator it = v.begin();
+    for(int i=0; it != v.end(); ++it, ++i){
+      res(i) = *it;
+    }
+    return res;
+ };
+
+
+ static DenseMatrix<TPrecision> Center(DenseMatrix<TPrecision> X){
+ 
+        DenseMatrix<TPrecision> Xc = Linalg<TPrecision>::Copy(X);
+        DenseVector<TPrecision> c = Linalg<TPrecision>::SumColumns(Xc);
+        Linalg<TPrecision>::Scale(c, 1.0/Xc.N(), c);
+        Linalg<TPrecision>::SubtractColumnwise(Xc, c, Xc);
+        c.deallocate();
+        return Xc;
+ };
+
+
+ static DenseVector<TPrecision> Expand(DenseVector<TPrecision> &v, int
+     newLength, TPrecision fill = 0){
+   DenseVector<TPrecision> a(newLength);
+   Linalg<TPrecision>::Copy(v, a);
+   for(int i=v.N(); i<newLength; i++){
+     a(i) = fill;
+   }
+   return a;
+ };
+
+ static DenseMatrix<TPrecision> ExpandColumns(DenseMatrix<TPrecision> A, int
+     ncol, TPrecision fill = 0){
+   DenseMatrix<TPrecision> M(A.M(), ncol);
+   Linalg<TPrecision>::Copy(A, M);
+   for(int i=A.N(); i<M.N(); i++ ){
+     for(int j=0; j<M.M(); j++){
+       M(j, i) = fill;
+     }
+   }
+   return M;
+ };  
+ 
+ static DenseMatrix<TPrecision> ExpandRows(DenseMatrix<TPrecision> A, int
+     nRow, TPrecision fill = 0){
+   DenseMatrix<TPrecision> M(nRow, A.N());
+   Linalg<TPrecision>::Copy(A, M);
+   for(int i=0; i<M.N(); i++ ){
+     for(int j=A.M(); j<M.M(); j++){
+       M(j, i) = fill;
+     }
+   }
+   return M;
+ };
+
+ static DenseMatrix<TPrecision> Expand(DenseMatrix<TPrecision> A, int
+     nCol, int nRow, TPrecision fill = 0){
+   DenseMatrix<TPrecision> M(nRow, nCol);
+   Linalg<TPrecision>::Copy(A, M);
+   for(int i=A.N(); i<M.N(); i++ ){
+     for(int j=A.M(); j<M.M(); j++){
+       M(j, i) = fill;
+     }
+   }
+   return M;
+ };  
+
+ 
+};
 
 };
 

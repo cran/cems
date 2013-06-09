@@ -3,6 +3,9 @@
 
 #include "Matrix.h"
 
+namespace FortranLinalg{
+
+
 //Simple Matrix storage to column major to use with lapack
 template <typename TPrecision>
 class DenseMatrix : public Matrix<TPrecision>{
@@ -31,7 +34,7 @@ class DenseMatrix : public Matrix<TPrecision>{
     };
 
     virtual TPrecision &operator()(unsigned int i, unsigned int j){
-      //if(i>=m || j >= n) throw "Out of bounds";
+      //if(i >= m || j >= n) throw "Out of bounds";
       return fastAccess[j][i];
     };
     
@@ -55,7 +58,8 @@ class DenseMatrix : public Matrix<TPrecision>{
     void deallocate(){
       if(a != NULL){
         delete[] a;
-        delete[] fastAccess; 
+        delete[] fastAccess;
+        a = NULL; 
       } 
     };
 
@@ -88,5 +92,6 @@ class DenseMatrix : public Matrix<TPrecision>{
 
 };
 
+};
 
 #endif
