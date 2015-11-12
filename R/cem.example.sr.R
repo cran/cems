@@ -1,8 +1,5 @@
-cem.example.sr <- function(n =1000, nstd=0.5, init=0, type=2){
+cem.example.sr <- function(n =1000, nstd=0.1, init=0, risk=2, stepX=0.1){
 
-library(cems)
-library(rgl)
-library(vegan)
   
 #Create data 
 d     <- swissroll(N=n, nstd = nstd)
@@ -10,6 +7,7 @@ dtest <- swissroll(N=n, nstd = nstd)
 
 #init
 if(init == 0){
+  print("Computing Isomap inital embedding")
   iso <- isomap(dist(d$Xn), k=15)
   z = iso$points[, 1:2] #d$X[, 2:3]
 }else{
@@ -17,20 +15,19 @@ if(init == 0){
 }
 
 
-ps0 <- cem(y = d$Xn, ly=d$Xn, lz = z, knnX=300, nPoints=100, iter=0, verbose=2, stepZ=1,
-    sigmaY=0.3, sigmaX = 0.3, stepBW=0.1, risk=0)
+ps0 <- cem(y = d$Xn, x = z, knnX=100,  iter=0, verbose=2,
+    stepX=1,sigmaX = 0.3, stepBW=0.1, risk=risk)
 
 
   ps = ps0
-  ps$type = type
 
-  if(ps$type==0){
+  if(ps$risk==0){
     col = "gold2"  
   }else{
     col = "dodgerblue2"
   }
 
-  px <-predict(ps);
+  px <- ps$x;
   perr = Inf
 
 
@@ -38,32 +35,20 @@ ps0 <- cem(y = d$Xn, ly=d$Xn, lz = z, knnX=300, nPoints=100, iter=0, verbose=2, 
   plot(px, pch=19, col="darkgray") 
 
 
-  for(i in 1:200){
-    pz = ps$z
-    ps <- cem.optimize(ps, iter=1, verbose=2, stepZ=1, stepBW=0.1)
-    x <- predict(ps)
+  for(i in 1:10){
+    ps <- cem.optimize(ps, iter=1, verbose=2, stepX=stepX, stepBW=0.1,
+        nPoints=500, optimalSigmaX=T)
+    x <- ps$x
 
     #segments(ps$z[,1], ps$z[, 2], pz[,1], pz[,2], lwd=2, col="#1C86EE55")
     segments(px[,1], px[, 2], x[,1], x[,2], lwd=2, col="#1C86EE55")
 
-    tx <- predict(ps, dtest$Xn)
-    ty <- predict(ps, tx)
-    err <- mean( rowSums( (ty$y-dtest$Xn)^2 ) )
-    print(err)
-    if(ps$type==0){
-      if(err >= perr) break 
-      perr=err;
-    }
-    else{
-      if(sum( (px - x) != 0 ) == 0 ) break;
-    }
     px = x
   } 
    
-  coords <- predict(ps, dtest$Xn)
+  coords <- ps$x
   p <- predict(ps, coords)
      
-  mean( rowSums((dtest$X - p$y)^2) )
 
 
 
@@ -107,7 +92,7 @@ ps0 <- cem(y = d$Xn, ly=d$Xn, lz = z, knnX=300, nPoints=100, iter=0, verbose=2, 
 
   #rgl.open()
   #rgl.bg(color="white")
-  #plot3d(d$Xn, type="s", radius=0.35, box=F, alpha=0.25)
+  #plot3d(d$Xn, risk="s", radius=0.35, box=F, alpha=0.25)
   #material3d(color=col, alpha=0.75, ambient=col, depth_mask=F)
   #shade3d(qm)
   #material3d(col="darkgray", ambient="darkgray", lit=F, alpha=0.5, depth_mask=T)
@@ -115,22 +100,22 @@ ps0 <- cem(y = d$Xn, ly=d$Xn, lz = z, knnX=300, nPoints=100, iter=0, verbose=2, 
 
 
 
-  pgx <- predict(ps, dtest$gYn)
-  pgy <- predict(ps, pgx)
-
+#pgx <- predict(ps, dtest$gYn)
   rgl.open()
   rgl.bg(color="white")
-  plot3d(pgy$y, type="s", col = col,  radius=0.3, box=F, axes=F, , alpha=1, xlab="", ylab="", zlab="")
+  plot3d(gy$y, type="s", col = col,  radius=0.2, box=F, axes=F, alpha=1, xlab="", ylab="", zlab="")
+  
 
   material3d(lwd=2, alpha=0.75)
   wire3d(d$qm)
   #y <- predict(ps, x)
-  #spheres3d(y$y, radius=0.3)
+  spheres3d(p$y, col = "black", radius=0.1)
 
+  spheres3d(d$Xn, col = "gray", radius=0.1)
 
 
 if(F){
-plot3d(d$Xn, type="s", col = "gray", radius=0.3, box=F, axes=F, , alpha=0.5, xlab="", ylab="", zlab="")
+plot3d(d$Xn, type="s", col = "gray", radius=0.5, box=F, axes=F, , alpha=0.5, xlab="", ylab="", zlab="")
 
 material3d(lwd=2, alpha=0.75)
 wire3d(d$qm)

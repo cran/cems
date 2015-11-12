@@ -1,6 +1,6 @@
 
-cem.example.arc <- function(n=150, noise=0.2, type=2, sigmaX= 0.1, sigmaY=0.1,
-init = 0, plotEach = 10){
+cem.example.arc <- function(n=150, noise=0.2, risk=2, sigmaX= 0.1, stepX=0.001,
+    stepBW=0.01, init = 0, plotEach = 1, noiseInit = 0.5){
 
 
 ### Create arc data set
@@ -38,6 +38,10 @@ if(init == 0){
  #random initialization
  z <- runif(n)
 }
+else if(init == 2){
+ #random initialization
+ z <- phi+runif(n) * noiseInit
+}
 else{
  #close to principal component initialization
  z = arc[,2]
@@ -45,18 +49,17 @@ else{
 
 #compute initial principal curve
 #do not optimize sigmaX after each itertion to show optimization path
-pc <-  cem(y=arc, ly=y, lz=z, knnX=n,  iter=0, optimalSigmaX=F)
+pc <-  cem(y=arc, x=z, knnX=nrow(arc)/10, iter=0, optimalSigmaX=T)
 
-#set type
-pc$type=type
+#set risk
+pc$risk=risk
 
 #set intial bandwidth
 pc$sigmaX=sigmaX; #smoothness of initial curve 
-pc$sigmaY=sigmaY;
 
 
 #initial prediction (curve)
-xi <- predict(pc)
+xi <- pc$x
 yi <- predict(pc, xi)
 oi <- order(xi)
 
@@ -66,7 +69,7 @@ xpi = seq(r[1], r[2], length.out=500)
 ypi = predict(pc, xpi)
 
 
-if( pc$type > 0 ){
+if( pc$risk > 0 ){
  colName <- "dodgerblue2"
 }else{
  colName <- "gold2"
@@ -82,7 +85,6 @@ pcs <- list()
 o <- list()
 x <- list()
 sigmaX <- list()
-sigmaY <- list()
 iter <- list()
 y <- list()
 yt <- list()
@@ -117,23 +119,23 @@ selected = -1
 
 #run a 100 iterations, one at a time 
 #for running the whole optimization in one go run either
-# pc <-  cem(y=arc, z=z, knnX=n, knnY=50, iter=100)
-# pc <- cem.optimize(pc, stepZ=1, stepBW=0.1, iter=100)
+# pc <- cem(y=arc, z=z, knnX=n, knnY=50, iter=100)
+# pc <- cem.optimize(pc, stepX=1, stepBW=0.1, iter=100)
 # here one iterations is run at the time and corss-validation is performed on a
 # test set. For minimizing orthogonality cross-validation appears to be not
 # necessary.
 
 for(k in 1:100){
   #run one iterations  
-  pc <- cem.optimize(pc, stepZ=1, stepBW=0.1, iter=1, verbose=2, optimalSigmaX=F)
+  pc <- cem.optimize(pc, stepX=stepX, stepBW=stepBW, iter=1, verbose=2,
+      optimalSigmaX=T, nPoints=100)
   
   #store cem values at iteration k
   
   sigmaX[k] <- pc$sigmaX
-  sigmaY[k] <- pc$sigmaY
   
 
-  x[[k]] <-predict(pc)
+  x[[k]] <- pc$x
   
   #train data
   r = range(x[[k]])
@@ -142,57 +144,34 @@ for(k in 1:100){
   o[[k]] <- order(x[[k]]);
   y[[k]] <- predict(pc, x[[k]])
 
-  #test data
-  xt <-predict(pc, arct)
-  yt[[k]] <-predict(pc, xt)
   
   #compute mean squared errors
-  dt <- (yt[[k]]$y - arct)
-  lt <- rowSums(dt^2)
   d <- (y[[k]]$y - arc)
   l <- rowSums(d^2)
-  mset[k] <- mean( lt )
   mse[k] <- mean( l )
   
   #compute orthogonaility
-  if(pc$type == 3 || pc$type == 0){
+  if(pc$risk == 3 || pc$risk == 0){
     d = d / cbind(sqrt(l), sqrt(l))
-    dt = dt / cbind(sqrt(lt), sqrt(lt))
   }
-  if(pc$type != 1){
+  if(pc$risk != 1){
     tl = rowSums( y[[k]]$tangents[[1]]^2)
-    tlt = rowSums( yt[[k]]$tangents[[1]]^2)
     y[[k]]$tangents[[1]] = y[[k]]$tangents[[1]] / cbind(sqrt(tl), sqrt(tl))
-    yt[[k]]$tangents[[1]] = yt[[k]]$tangents[[1]] / cbind(sqrt(tlt), sqrt(tlt))
   } 
   ortho[k]  = mean( rowSums( y[[k]]$tangents[[1]]  * d  )^2 )
-  orthot[k] = mean( rowSums( yt[[k]]$tangents[[1]] * dt )^2 )
  
   #print orthogoanilty and mse values
   print( sprintf("ortho: %f", ortho[k]) ) 
   print( sprintf("mse: %f", mse[k]) )
 
 
-  #cross-validation 
-  if(k>1){
-    if(pc$type == 0){
-      if(mset[k] > mset[k-1]){
-        selected = selected+1
-      }
-    }
-    else{
-      if(orthot[k] > orthot[k-1]){
-        selected = selected+1
-      }
-    }
-  }
 
   #print curve every nIter iteration until selected curve based on cross-validation
-  if(selected < 0){
+#if(selected < 0){
     if(k %% nIter == 0){
       lines(yp$y, col=col, lty=1, lwd=lwp)
     }
-  }
+# }
   if(selected == 0){
      lines(yp$y, col=col2, lty=1, lwd=lwd)
      selected=1;
@@ -217,32 +196,24 @@ legend = c("ground truth", "initialization", "intermediates", "selected"), cex=1
 dev.new()
 
 par(mar=c(5,6,4,2))
-if(pc$type==0){
-  mset[mset > 5*max(mse)] = 5*max(mse)
+if(pc$risk==0){
   
   plot((1:length(mse)), mse, type="l", lwd=8, cex.lab=1.75, cex.axis=1.75,
        col="darkgray", lty=1, xlab="iteration", ylab=expression(hat(d)(lambda,
-       Y)^2), bty="n", ylim = range(mse, mset)) 
-  mset = mset -0.005
-  lines((1:length(mset)), mset, lwd=8, lty=2, col="black")
+       Y)^2), bty="n", ylim = range(mse)) 
 
   i1 <- which.min(mse)
-  i2 <- which.min(mset)
   points(i1, mse[[i1]], col="darkgray", pch=19, cex=3) 
-  points(i2, mset[[i2]], col="black", pch=19, cex=3) 
   
   legend("topright", col = c("darkgray", "black"), lty=c(1,2), lwd=c(8,8), legend = c("train", "test"), cex=1.75, bty="n", seg.len=4 )
 
 }
-if(pc$type != 0){
+if(pc$risk != 0){
 
-  plot((1:length(ortho)), ortho, type="l", lwd=8, cex.lab=1.75, cex.axis=1.75, col="darkgray", lty=1, xlab="iteration", ylab=expression(hat(q)(lambda, Y)^2), bty="n", ylim = range(ortho, orthot))
-  lines((1:length(orthot)),orthot, lwd=8, lty=2, col="black")
+  plot((1:length(ortho)), ortho, type="l", lwd=8, cex.lab=1.75, cex.axis=1.75, col="darkgray", lty=1, xlab="iteration", ylab=expression(hat(q)(lambda, Y)^2), bty="n", ylim = range(ortho))
 
   i1 <- which.min(ortho)
-  i2 <- which.min(orthot)
   points(i1, ortho[[i1]], col="darkgray", pch=19, cex=3) 
-  points(i2, orthot[[i2]], col="black", pch=19, cex=3) 
 
 legend("topright", col = c("darkgray", "black"), lty=c(1,2), lwd=c(8,8),
 legend = c("train", "test"), cex=1.75, bty="n", seg.len=4 )

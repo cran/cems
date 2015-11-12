@@ -197,7 +197,7 @@ class GaussianKernel : public Kernel<TPrecision, TPrecision>{
       }
       this->var = rhs.var;
       this->ng = rhs.ng;
-      this->nh = nh;
+      this->nh = rhs.nh;
       this->c = rhs.c;
       this->d = rhs.d;
       diff.deallocate();

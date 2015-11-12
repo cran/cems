@@ -1,6 +1,7 @@
 #ifndef DENSEVECTOR_H
 #define DENSEVECTOR_H
 
+#include <cstddef>
 #include "Vector.h"
 
 namespace FortranLinalg{

@@ -1,6 +1,7 @@
 \name{cem}
 \alias{cem}
 \alias{cems}
+\alias{cem.geodesic}
 \alias{cems-package}
 \alias{cem.optimize}
 \alias{predict.cem}
@@ -49,31 +50,30 @@ this case.
 
 
 \usage{
-cem( y, lz, ly,  knnX=5*ncol(y), sigmaY= 1/3, sigmaX=1/3, iter =100, nPoints =
-    nrow(y), stepZ = 1, stepBW = 0.1, verbose=1, risk=2, penalty=0,
+cem( y, x,  knnX=50, sigmaX= 1/3, iter =100, nPoints =
+    nrow(y), stepX = 0.25, stepBW = 0.1, verbose=1, risk=2, penalty=0,
     sigmaAsFactor = T, optimalSigmaX =  F , quadratic = F)
-cem.optimize(object, iter = 100, nPoints = nrow(object$y), stepZ=1, stepBW=0.1,
+cem.optimize(object, iter = 100, nPoints = nrow(object$y), stepX=1, stepBW=0.1,
     verbose=1, optimalSigmaX =F ) 
-\method{predict}{cem}(object, newdata = object$y, ...)
+\method{predict}{cem}(object, newdata = object$y, type=c("coordinates",
+      "curvature"), ...)
+cem.geodesic(object, xs, xe, iter = 100, step = 0.01,
+    verbose=1, ns=100)
 }
 
 \arguments{
   \item{y}{\eqn{n}{n}-dimensional data to compute conditional expectation
 manifold for.}
-  \item{ly}{Landmark points for computing mapping from high-D to low D}
-  \item{lz}{Initalization for low dimensional mapping \eqn{\lambda}{\lambda}. For
+  \item{x}{Initalization for low dimensional mapping \eqn{\lambda}{\lambda}. For
 example an isomap or lle or PCA embedding of \eqn{ly}{ly}.}
   \item{knnX}{Number of nearest neighbors for kernel regression of \eqn{g}, i.e.
 the regression is trunctaed to only the knnX nearest neighbors}    
  \item{sigmaX}{Initalize bandwidth of \eqn{g} to sigmaX. If \code{sigamAsFactor}
 is set to true the bandiwdth is computed as sigmaX times average knnX nearest
 neighbor distance.}  
- \item{sigmaY}{Initalize bandwidth of \eqn{\lambda} to sigmaY. If \code{sigamAsFactor}
-is set to true the bandwidth is computed as sigmaX times average knnY nearest
-neighbor distance.}  
   \item{iter}{Number of optimization iterations, i.e. number of gradient desecent with
 line search setps.}
-  \item{stepZ}{Gradient descent step size for optimizing Z}
+  \item{stepX}{Gradient descent step size for optimizing coordinate mapping}
   \item{stepBW}{Gradient descent step size for optimizing bandwidths}
   \item{verbose}{Report gradient descent information. 1 reports iteration number
 and mean squared projetcion distances. 2 has additonal information on step size
@@ -95,7 +95,13 @@ g_\lambda(Y)||^2]}. 1 = \eqn{E[<g(f(y)) - y , g'(f(y))>^2]}. 2 = 1 but with
   \item{newdata}{Data to do prediction for. If \code{ncol(newdata) == m} for each
 point x in newdata g(x) is computed. If \code{col{newdata} == n} for each point
 y in newdata \eqn{\lambda(y)}{\lambda(y)} is computed.}
+  \item{type}{Prediction type: coorindates or curvatures of the manifold model}
   \item{...}{Additional arguments have no effect.}
+  \item{xs}{Start point for geodesic}
+  \item{xe}{End point for geodesic}
+  \item{step}{Step size for optimizing geoesic}
+  \item{ns}{Number of segments for dicretizing geodesic}
+  
 }
 
 \value{
@@ -115,26 +121,22 @@ Dimensionality Reduction and Principal Surfaces via Kernel Map Manifolds,
 In Proceedings of the 2009 International Conference on Computer Vison (ICCV 2009).
 
 Samuel Gerber and Ross Whitaker,
-Unsupervised Principal Curve Estimation, 
-JMLR 2013.
-
+Regularization-Free Principal Curve Estimation
+Journal of Machine Learning Research 2013.
 }
 \examples{
-library(cems)
-
 
 ##Noisy half circle example
 phi <- runif(100)*pi
 arc <- cbind(cos(phi), sin(phi)) * (1+rnorm(100) * 0.1)
 
-pc <-  cem(y=arc, ly=arc, lz=phi, knnX=50, iter=10, optimalSigmaX=TRUE, verbose=2)
+pc <-  cem(y=arc, x=phi, knnX=10, iter=10, optimalSigmaX=TRUE, verbose=2)
 
 #predict original data
-x <- predict(pc)
-y <- predict(pc, x);
+y <- predict(pc, pc$x);
 
 #predict new data
-xt <- seq(min(x), max(x), length.out=100)
+xt <- seq(min(pc$x), max(pc$x), length.out=100)
 yt <- predict(pc, xt)
 
 #plot things

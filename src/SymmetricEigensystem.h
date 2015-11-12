@@ -5,7 +5,7 @@
 #include "DenseMatrix.h"
 #include "SymmetricDenseMatrix.h"
 
-#include "Vector.h"
+#include "DenseVector.h"
 
 #include "LapackDefs.h"
 

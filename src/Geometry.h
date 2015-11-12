@@ -116,8 +116,9 @@ class Geometry{
 
 
 
-    static void computeANN(FortranLinalg::DenseMatrix<double> &data, FortranLinalg::DenseMatrix<int> &knn,
-        FortranLinalg::DenseMatrix<double> &dists, double eps){
+    static void computeANN(FortranLinalg::DenseMatrix<double> &data,
+        FortranLinalg::DenseMatrix<int> &knn, FortranLinalg::DenseMatrix<double>
+        &dists, double eps){
 
       ANNpointArray pts= data.getColumnAccessor();
 

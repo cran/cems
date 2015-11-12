@@ -1,3 +1,8 @@
+
+## cems version 0.3 - S. Gerber - March. 27. 2014 ##
+- Fixed fast version of CEMS algorithm
+- Added geodesic and curvature computations
+
 ## cems version 0.2 - S. Gerber - June. 9. 2013 ##
 - Updated to fast version of CEMS algorithm
 

@@ -77,7 +77,7 @@ else{
 
 #compute initial principal curve
 #do not optimize sigmaX after each itertion to show optimization path
-pc <-  cem(y=arc, ly=y, lz=z, knnX=n, iter=0, optimalSigmaX=F)
+pc <-  cem(y=arc, knnX=n, iter=0, optimalSigmaX=F)
 #pc <-  cem(y=arc, z=z, knnX=50, knnY=50, iter=0, optimalSigmaX=T)
 
 #set type
@@ -168,7 +168,7 @@ selected = -1
 #run a 100 iterations, one at a time 
 #for running the whole optimization in one go run either
 # pc <-  cem(y=arc, z=z, knnX=n, knnY=50, iter=100)
-# pc <- cem.optimize(pc, stepZ=1, stepBW=0.1, iter=100)
+# pc <- cem.optimize(pc, stepX=1, stepBW=0.1, iter=100)
 # here one iterations is run at the time and corss-validation is performed on a
 # test set. For minimizing orthogonality cross-validation appears to be not
 # necessary.
@@ -178,7 +178,7 @@ sigmaY<-list();
 
 for(k in 1:nI){
   #run one iterations  
-  pc <- cem.optimize(pc, stepZ=1, stepBW=0.1, iter=1, verbose=2, optimalSigmaX=F)
+  pc <- cem.optimize(pc, stepX=1, stepBW=0.1, iter=1, verbose=2, optimalSigmaX=F)
   
   #store cem values at iteration k
   

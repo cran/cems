@@ -1,6 +1,7 @@
 #ifndef DENSEMATRIX_H
 #define DENSEMATRIX_H
 
+#include <cstddef>
 #include "Matrix.h"
 
 namespace FortranLinalg{
@@ -59,13 +60,14 @@ class DenseMatrix : public Matrix<TPrecision>{
       if(a != NULL){
         delete[] a;
         delete[] fastAccess;
+        fastAccess = NULL;
         a = NULL; 
       } 
     };
 
     TPrecision **getColumnAccessor(){
       return fastAccess;
-    }
+    };
 
 
   protected:

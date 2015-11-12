@@ -18,6 +18,10 @@
 
 #include "LapackDefs.h"
 
+#ifndef FL_INT
+#define FL_INT int
+#endif
+
 
 
 namespace FortranLinalg{
@@ -42,22 +46,22 @@ class Linalg{
       DenseMatrix<TPrecision> &b, double *sse = NULL){
 
 
-    int m = a.M();
-    int n = a.N();
-    int lda = m;
+    FL_INT m = a.M();
+    FL_INT n = a.N();
+    FL_INT lda = m;
 
-    int nrhs = b.N();
-    int ldb = std::max(m, n);
-    int info = 0;
+    FL_INT nrhs = b.N();
+    FL_INT ldb = std::max(m, n);
+    FL_INT info = 0;
     TPrecision workTmp = 0 ;
-    int query = -1;
+    FL_INT query = -1;
     bool deallocate = false; 
     DenseMatrix<TPrecision> tmp = b; 
-    if(ldb > (int) b.M()){
+    if(ldb > (FL_INT) b.M()){
       deallocate = true;
       tmp = DenseMatrix<TPrecision>(ldb, nrhs);
-      for(unsigned int i=0; i<b.M(); i++){
-        for(unsigned int j=0; j<b.N(); j++){
+      for(unsigned FL_INT i=0; i<b.M(); i++){
+        for(unsigned FL_INT j=0; j<b.N(); j++){
           tmp(i, j)= b(i, j);
         }
       }
@@ -65,15 +69,15 @@ class Linalg{
 
     TPrecision *s = new TPrecision[std::min(m, n)];
     TPrecision rcond = -1; //use machine precision as condition number
-    int rank = -1;
-    int *iwork = new int[100*std::min(m,n)];
+    FL_INT rank = -1;
+    FL_INT *iwork = new FL_INT[100*std::min(m,n)];
     
     if(isDoubleTPrecision()){
       lapack::dgelsd_(&m, &n, &nrhs, (double*)a.data(), &lda,
           (double*)tmp.data(), &ldb,  (double*)s, (double*)&rcond, &rank,
           (double*)&workTmp, &query, iwork, &info);
 
-      int lwork = workTmp;
+      FL_INT lwork = workTmp;
       double *work =new double[lwork];
       lapack::dgelsd_(&m, &n, &nrhs, (double*)a.data(), &lda,
           (double*)tmp.data(), &ldb,  (double*)s, (double*)&rcond, &rank,
@@ -85,7 +89,7 @@ class Linalg{
           (float*)tmp.data(), &ldb,  (float*)s, (float*)&rcond, &rank,
           (float*)&workTmp, &query, iwork, &info);
 
-      int lwork = workTmp;
+      FL_INT lwork = workTmp;
       float *work =new float[lwork];
  
       lapack::sgelsd_(&m, &n, &nrhs, (float*)a.data(), &lda,
@@ -94,18 +98,18 @@ class Linalg{
       delete[] work;
     }
 
-    int nrows = a.N();
+    FL_INT nrows = a.N();
     DenseMatrix<TPrecision> out(nrows, nrhs);
-    for(unsigned int i=0; i<out.M(); i++){
-      for(unsigned int j=0; j<out.N(); j++){
+    for(unsigned FL_INT i=0; i<out.M(); i++){
+      for(unsigned FL_INT j=0; j<out.N(); j++){
         out(i, j) = tmp(i, j);
       }
     }
 
     if(sse != NULL){
-      for(unsigned int i=0; i<out.N(); i++){
+      for(unsigned FL_INT i=0; i<out.N(); i++){
         sse[i] = 0;
-        for(unsigned int j=out.M(); j < tmp.M(); j++){
+        for(unsigned FL_INT j=out.M(); j < tmp.M(); j++){
           double blah = tmp(j, i);
           sse[i] += blah *  blah;
         }
@@ -117,7 +121,6 @@ class Linalg{
     }
 
 
-    //std::cout << "Info " << info << "  Rank: " << rank << std::endl;
     delete[] s;
     delete[] iwork;
 
@@ -138,12 +141,12 @@ class Linalg{
 
   static bool Solve2(DenseMatrix<TPrecision> &a, DenseMatrix<TPrecision> &b){
 
-    int n = a.M();
-    int nrhs = b.N();
-    int lda = n;
-    int ldb = b.M();
-    int info = 0;
-    int *ipiv = new int[n];
+    FL_INT n = a.M();
+    FL_INT nrhs = b.N();
+    FL_INT lda = n;
+    FL_INT ldb = b.M();
+    FL_INT info = 0;
+    FL_INT *ipiv = new FL_INT[n];
     
 
     if(isDoubleTPrecision()){
@@ -169,7 +172,7 @@ class Linalg{
   };
   
   static DenseMatrix<TPrecision> SolveSPD(DenseMatrix<TPrecision> &a,
-      DenseMatrix<TPrecision> &b, TPrecision &rcond, int &info){
+      DenseMatrix<TPrecision> &b, TPrecision &rcond, FL_INT &info){
         DenseMatrix<TPrecision> x(b.M(), b.N());
         Copy(b, x);
         SolveSPD2(a, x, rcond, info);
@@ -180,11 +183,11 @@ class Linalg{
   static bool SolveSPD2(DenseMatrix<TPrecision> &a, DenseMatrix<TPrecision> &b){
 
     char u='U';
-    int n = a.M();
-    int nrhs = b.N();
-    int lda = n;
-    int ldb = b.M();
-    int info = 0;
+    FL_INT n = a.M();
+    FL_INT nrhs = b.N();
+    FL_INT lda = n;
+    FL_INT ldb = b.M();
+    FL_INT info = 0;
     
 
     if(isDoubleTPrecision()){
@@ -200,24 +203,24 @@ class Linalg{
 
 
   static void SolveSPD2(DenseMatrix<TPrecision> &a, DenseMatrix<TPrecision> &b,
-      TPrecision &rcond, int &info){
+      TPrecision &rcond, FL_INT &info){
 
     char fact ='E';
     char u='U';
-    int n = a.M();
-    int nrhs = b.N();
-    int lda = n;
+    FL_INT n = a.M();
+    FL_INT nrhs = b.N();
+    FL_INT lda = n;
     TPrecision *af = new TPrecision[n*n];
-    int ldaf = n;
+    FL_INT ldaf = n;
     char equed ='0';
     TPrecision *s = new TPrecision[n];
-    int ldb = b.M();
+    FL_INT ldb = b.M();
     TPrecision *x = new TPrecision[n * nrhs];
-    int ldx = n;
+    FL_INT ldx = n;
     TPrecision *ferr = new TPrecision[nrhs];
     TPrecision *berr = new TPrecision[nrhs];
     TPrecision *work = new TPrecision[3*n];
-    int *iwork = new int[n];
+    FL_INT *iwork = new FL_INT[n];
 
 
     if(isDoubleTPrecision()){
@@ -257,7 +260,7 @@ class Linalg{
   
   static TPrecision DetSPDCholesky(DenseMatrix<TPrecision> &ch){
      TPrecision d = 1;
-    for(unsigned int i=0; i< ch.N(); i++){
+    for(unsigned FL_INT i=0; i< ch.N(); i++){
       d *= ch(i, i);
     }
     return d*d;
@@ -280,18 +283,18 @@ class Linalg{
   };
 
   //---- LU factorization ---//
-  static DenseMatrix<TPrecision> LU(DenseMatrix<TPrecision> &a, int *ipiv = NULL){
-    int m = a.M();
-    int n = a.N();
+  static DenseMatrix<TPrecision> LU(DenseMatrix<TPrecision> &a, FL_INT *ipiv = NULL){
+    FL_INT m = a.M();
+    FL_INT n = a.N();
     DenseMatrix<TPrecision> lu = Copy(a);
-    int lda = m;
+    FL_INT lda = m;
 
     bool clear = false;
     if(ipiv == NULL){
      clear = true;
-     ipiv = new int[std::min(n, m)];
+     ipiv = new FL_INT[std::min(n, m)];
     }
-    int info = 0;
+    FL_INT info = 0;
     
     if(isDoubleTPrecision()){
       lapack::dgetrf_(&m, &n, (double*) lu.data(), &lda, ipiv, &info);
@@ -301,7 +304,7 @@ class Linalg{
     }
 
     if(clear){
-      delete ipiv;
+      delete[] ipiv;
     }
 
     if(info !=0 ){
@@ -321,12 +324,12 @@ class Linalg{
 
   
   static void QR_inplace(DenseMatrix<TPrecision> &q){
-    int n = q.N();
-    int m = q.M();
-    int lda = m;
-    int info = 0;
+    FL_INT n = q.N();
+    FL_INT m = q.M();
+    FL_INT lda = m;
+    FL_INT info = 0;
     TPrecision *work = new TPrecision[1];
-    int lwork = -1;
+    FL_INT lwork = -1;
     TPrecision *tau = new TPrecision[n];
 
     //workspace query
@@ -344,15 +347,16 @@ class Linalg{
     delete[] work;
     work = new TPrecision[lwork];
 
+    FL_INT k = std::min(m, n);
     //qr
-    if(isDoubleTPrecision()){
+    if( isDoubleTPrecision() ){
       lapack::dgeqrf_(&m, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
       if(info !=0 ){
         //std::cerr << "QRF error: " << info << std::endl;
       }
 
       n = std::min(m, n);
-      lapack::dorgqr_(&m, &n, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
+      lapack::dorgqr_(&m, &n, &k, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
       if(info !=0 ){
         //std::cerr << "QR error: " << info << std::endl;
       }
@@ -364,8 +368,7 @@ class Linalg{
       }
 
       n = std::min(m, n);
-      lapack::dorgqr_(&m, &n, &n, (double*) q.data(), &lda, (double*) tau, (double*) work, &lwork, &info);
-      lapack::sorgqr_(&m, &n, &n, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
+      lapack::sorgqr_(&m, &n, &k, (float*) q.data(), &lda, (float*) tau, (float*) work, &lwork, &info);
       if(info !=0 ){
         //std::cerr << "QR error: " << info << std::endl;
       }
@@ -380,10 +383,10 @@ class Linalg{
 
   //---- Choelsky factorization ---//
   static DenseMatrix<TPrecision> Cholesky(DenseMatrix<TPrecision> &a, char uplo = 'U'){
-    int n = a.N();
+    FL_INT n = a.N();
     DenseMatrix<TPrecision> ch = Copy(a);
-    int lda = n;
-    int info = 0;
+    FL_INT lda = n;
+    FL_INT info = 0;
     
     if(isDoubleTPrecision()){
       lapack::dpotrf_(&uplo, &n, (double*) ch.data(), &lda, &info);
@@ -403,20 +406,22 @@ class Linalg{
 
   //---- Inverse ---//
   static DenseMatrix<TPrecision> Inverse(DenseMatrix<TPrecision> &a){
-    int *ipiv = new int[a.N()];
+    FL_INT *ipiv = new FL_INT[a.N()];
     DenseMatrix<TPrecision> inv = LU(a, ipiv);
     InverseLU(inv, ipiv);
+
+    delete[] ipiv;
 
     return inv;
   };
 
   //---- Inverse, inpout is lu factorizatiopn ---//
-  static void InverseLU(DenseMatrix<TPrecision> &inv, int *ipiv){
-    int n =inv.N();
-    int lda = n;
+  static void InverseLU(DenseMatrix<TPrecision> &inv, FL_INT *ipiv){
+    FL_INT n =inv.N();
+    FL_INT lda = n;
     TPrecision *work = new TPrecision[2];
-    int info = 0;
-    int lwork = -1;
+    FL_INT info = 0;
+    FL_INT lwork = -1;
 
     if(isDoubleTPrecision()){
       lapack::dgetri_(&n, (double*)inv.data(), &lda, ipiv,(double*) work, &lwork, &info);
@@ -426,7 +431,8 @@ class Linalg{
     }
 
     lwork = work[0];
-    delete work;
+    delete[] work;
+
     work = new TPrecision[lwork];
 
     if(isDoubleTPrecision()){
@@ -437,8 +443,7 @@ class Linalg{
     }
 
 
-    delete work;
-    delete ipiv;
+    delete[] work;
  
     if(info !=0 ){
       //std::cerr << "Inverse error: " << info << std::endl;
@@ -466,9 +471,9 @@ class Linalg{
   //--- Symmetric positive definite inverse, input is the choelsky decomposition
   static void InverseCholesky(DenseMatrix<TPrecision> &inv, char u = 'U'){
 
-    int n =inv.N();
-    int lda = n;
-    int info = 0;
+    FL_INT n =inv.N();
+    FL_INT lda = n;
+    FL_INT info = 0;
     if(isDoubleTPrecision()){
       lapack::dpotri_(&u, &n, (double*)inv.data(), &lda, &info);
     }
@@ -476,8 +481,8 @@ class Linalg{
       lapack::spotri_(&u, &n, (float*)inv.data(), &lda, &info);
     }
 
-    for(int i=0; i<n;i++){
-      for(int j=i+1; j<n; j++){
+    for(FL_INT i=0; i<n;i++){
+      for(FL_INT j=i+1; j<n; j++){
         inv(j, i) = inv(i, j);
       }
     }
@@ -500,11 +505,11 @@ class Linalg{
 
     char transa;
     char transb;
-    int m;
-    int n;
-    int k;
-    int lda;
-    int ldb;
+    FL_INT m;
+    FL_INT n;
+    FL_INT k;
+    FL_INT lda;
+    FL_INT ldb;
 
     if(transposeA){
       m = a.N();
@@ -566,8 +571,8 @@ class Linalg{
   static DenseMatrix<TPrecision> Multiply(DenseMatrix<TPrecision> &a, DenseMatrix<TPrecision> &b,
       bool transposeA = false, bool transposeB = false, TPrecision alpha = 1 ){
 
-    int m;
-    int n;
+    FL_INT m;
+    FL_INT n;
 
     if(transposeA){
       m = a.N();
@@ -598,7 +603,7 @@ class Linalg{
   static DenseVector<TPrecision> Multiply(DenseMatrix<TPrecision> &a,
       DenseVector<TPrecision> &v, bool transpose = false, TPrecision alpha = 1){
 
-    int lc;
+    FL_INT lc;
 
     if(transpose){
       lc = a.N();
@@ -621,9 +626,9 @@ class Linalg{
     TPrecision beta = 0;
 
     char transa;
-    int ma = a.M();
-    int na = a.N();
-    int lda = a.M();
+    FL_INT ma = a.M();
+    FL_INT na = a.N();
+    FL_INT lda = a.M();
     if(transpose){
       transa = 'T';
     }
@@ -631,7 +636,7 @@ class Linalg{
       transa = 'N';
     }
 
-    int inc = 1;
+    FL_INT inc = 1;
     if(isDoubleTPrecision()){
       lapack::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
           &lda, (double*)v.data(), &inc, (double*)&beta, (double*)out.data(), &inc);
@@ -646,9 +651,9 @@ class Linalg{
 
   //Matrix vector (matrix column) multiply with output allocation 
   static DenseVector<TPrecision> MultiplyColumn(DenseMatrix<TPrecision> &a,
-      DenseMatrix<TPrecision> &b, int index, bool transpose = false, TPrecision alpha = 1){
+      DenseMatrix<TPrecision> &b, FL_INT index, bool transpose = false, TPrecision alpha = 1){
 
-    int lc;
+    FL_INT lc;
 
     if(transpose){
       lc = a.M();
@@ -664,7 +669,7 @@ class Linalg{
   
   //Matrix vector (matrix column) multiply without output allocation 
   static void MultiplyColumn(DenseMatrix<TPrecision> &a,
-      DenseMatrix<TPrecision> &b, int index, DenseVector<TPrecision> &out, 
+      DenseMatrix<TPrecision> &b, FL_INT index, DenseVector<TPrecision> &out, 
       bool transpose = false, TPrecision alpha = 1){
 
     TPrecision beta = 0;
@@ -676,15 +681,15 @@ class Linalg{
     else{
       transa = 'N';
     }
-    int ma = a.M();
-    int na = a.N();
-    int lda = a.M();
+    FL_INT ma = a.M();
+    FL_INT na = a.N();
+    FL_INT lda = a.M();
 
     TPrecision *v = b.data();
-    int vinc = 1;
+    FL_INT vinc = 1;
     v = &v[index*b.M()];
 
-    int inc = 1;
+    FL_INT inc = 1;
 
     if(isDoubleTPrecision()){
       lapack::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
@@ -700,9 +705,9 @@ class Linalg{
 
   //Matrix vector (matrix row) multiply with output allocation 
   static DenseVector<TPrecision> MultiplyRow(DenseMatrix<TPrecision> &a,
-      DenseMatrix<TPrecision> &b, int index, bool transpose = false, TPrecision alpha = 1){
+      DenseMatrix<TPrecision> &b, FL_INT index, bool transpose = false, TPrecision alpha = 1){
 
-    int lc;
+    FL_INT lc;
 
       if(transpose){
         lc = a.M();
@@ -718,25 +723,25 @@ class Linalg{
   
   //Matrix vector (matrix row) multiply without output allocation 
   static void MultiplyRow(DenseMatrix<TPrecision> &a,
-      DenseMatrix<TPrecision> &b, int index, DenseVector<TPrecision> &out, 
+      DenseMatrix<TPrecision> &b, FL_INT index, DenseVector<TPrecision> &out, 
       bool transpose = false, TPrecision alpha = 1){
 
     TPrecision beta = 0;
 
     char transa;
-    int ma = a.M();
-    int na = a.N();
+    FL_INT ma = a.M();
+    FL_INT na = a.N();
     if(transpose){
       transa = 'T';
     }
     else{
       transa = 'N';
     }
-    int lda = a.M();
+    FL_INT lda = a.M();
 
     
     TPrecision *v = b.data();
-    int vinc = 1;
+    FL_INT vinc = 1;
     if(b.isRowMajor()){
       v = &v[index*b.N];
     }
@@ -746,7 +751,7 @@ class Linalg{
     }
 
 
-    int inc = 1;
+    FL_INT inc = 1;
 
     if(isDoubleTPrecision()){
       lapack::dgemv_(&transa,  &ma, &na, (double*)&alpha, (double*)a.data(),
@@ -770,8 +775,8 @@ class Linalg{
 
    static TPrecision Dot(DenseVector<TPrecision> &x, DenseVector<TPrecision> &y){
      
-     int n = x.N();
-     int inc = 1;
+     FL_INT n = x.N();
+     FL_INT inc = 1;
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
@@ -785,15 +790,15 @@ class Linalg{
 
    
 
-   static TPrecision DotColumn(DenseMatrix<TPrecision> &x, int index,
+   static TPrecision DotColumn(DenseMatrix<TPrecision> &x, FL_INT index,
       DenseVector<TPrecision> &y){
     
       TPrecision *v = x.data();
-      int vinc = 1;
+      FL_INT vinc = 1;
       v = &v[index*x.M()];
 
-     int n = y.N();
-     int inc = 1;
+     FL_INT n = y.N();
+     FL_INT inc = 1;
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
@@ -806,11 +811,11 @@ class Linalg{
    }; 
 
 
-   static TPrecision DotRow(DenseMatrix<TPrecision> &x, int index,
+   static TPrecision DotRow(DenseMatrix<TPrecision> &x, FL_INT index,
       DenseVector<TPrecision> &y){
     
       TPrecision *v = x.data();
-      int vinc = 1;
+      FL_INT vinc = 1;
       if(x.isRowMajor()){
         v = &v[index * x.N()];
       }
@@ -819,8 +824,8 @@ class Linalg{
         vinc = x.M();
       }
 
-     int n = y.N();
-     int inc = 1;
+     FL_INT n = y.N();
+     FL_INT inc = 1;
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
@@ -833,11 +838,11 @@ class Linalg{
    }; 
 
 
-   static TPrecision DotRowRow(DenseMatrix<TPrecision> &x, int xindex,
-      DenseMatrix<TPrecision> &y, int yindex ){
+   static TPrecision DotRowRow(DenseMatrix<TPrecision> &x, FL_INT xindex,
+      DenseMatrix<TPrecision> &y, FL_INT yindex ){
     
       TPrecision *v = x.data();
-      int vinc = 1;
+      FL_INT vinc = 1;
       if(x.isRowMajor()){
         v = &v[xindex * x.N()];
       }
@@ -848,7 +853,7 @@ class Linalg{
 
 
       TPrecision *w = y.data();
-      int winc = 1;
+      FL_INT winc = 1;
       if(y.isRowMajor()){
         w = &w[yindex * y.N()];
       }
@@ -858,7 +863,7 @@ class Linalg{
       }
 
 
-     int n = x.M();
+     FL_INT n = x.M();
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
@@ -871,17 +876,17 @@ class Linalg{
    }; 
 
    
-   static TPrecision DotColumnRow(DenseMatrix<TPrecision> &x, int xindex,
-      DenseMatrix<TPrecision> &y, int yindex ){
+   static TPrecision DotColumnRow(DenseMatrix<TPrecision> &x, FL_INT xindex,
+      DenseMatrix<TPrecision> &y, FL_INT yindex ){
     return DotRowColumn(y, yindex, x, xindex);
    };
 
 
-   static TPrecision DotRowColumn(DenseMatrix<TPrecision> &x, int xindex,
-      DenseMatrix<TPrecision> &y, int yindex ){
+   static TPrecision DotRowColumn(DenseMatrix<TPrecision> &x, FL_INT xindex,
+      DenseMatrix<TPrecision> &y, FL_INT yindex ){
     
       TPrecision *v = x.data();
-      int vinc = 1;
+      FL_INT vinc = 1;
       if(x.isRowMajor()){
         v = &v[xindex * x.N()];
       }
@@ -892,7 +897,7 @@ class Linalg{
 
 
       TPrecision *w = y.data();
-      int winc = 1;
+      FL_INT winc = 1;
       if(y.isRowMajor()){
         w = &v[yindex];
         winc = y.N();
@@ -901,7 +906,7 @@ class Linalg{
         w = &w[yindex*y.M()];
       }
 
-     int n = x.M();
+     FL_INT n = x.M();
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
@@ -914,16 +919,16 @@ class Linalg{
    }; 
 
    
-   static TPrecision DotColumnColumn(DenseMatrix<TPrecision> &x, int xindex,
-      DenseMatrix<TPrecision> &y, int yindex ){
+   static TPrecision DotColumnColumn(DenseMatrix<TPrecision> &x, FL_INT xindex,
+      DenseMatrix<TPrecision> &y, FL_INT yindex ){
     
       TPrecision *v = x.data();
-      int vinc = 1;
+      FL_INT vinc = 1;
 
       v = &v[xindex*x.M()];
 
       TPrecision *w = y.data();
-      int winc = 1;
+      FL_INT winc = 1;
      // if(y.isRowMajor()){
       //  w = &v[yindex];
       //  winc = y.N();
@@ -932,7 +937,7 @@ class Linalg{
         w = &w[yindex*y.M()];
       //}
 
-     int n = x.M();
+     FL_INT n = x.M();
     
      TPrecision res = 0; 
      if( isDoubleTPrecision() ){
@@ -968,18 +973,18 @@ class Linalg{
 
 
 
-  static DenseVector<TPrecision> ExtractColumn(Matrix<TPrecision> &a, int index){
+  static DenseVector<TPrecision> ExtractColumn(Matrix<TPrecision> &a, FL_INT index){
     DenseVector<TPrecision> v(a.M());
-    for(unsigned int i=0; i<a.M(); i++){
+    for(unsigned FL_INT i=0; i<a.M(); i++){
       v(i) = a(i, index);
     }
     return v;
   };
   
-  static DenseMatrix<TPrecision> ExtractColumns(Matrix<TPrecision> &a, unsigned int start, unsigned int end){
+  static DenseMatrix<TPrecision> ExtractColumns(Matrix<TPrecision> &a, unsigned FL_INT start, unsigned FL_INT end){
     DenseMatrix<TPrecision> m(a.M(), end-start);
-    for(unsigned int i=0; i<end-start; i++){
-      for(unsigned int j=0; j< a.M(); j++){
+    for(unsigned FL_INT i=0; i<end-start; i++){
+      for(unsigned FL_INT j=0; j< a.M(); j++){
         m(j,i) = a(j, start+i);
       }
     }
@@ -987,24 +992,24 @@ class Linalg{
   };
 
 
-  static void ExtractColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
-    for(unsigned int i=0; i<std::min(a.M(),v.N()); i++){
+  static void ExtractColumn(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &v){
+    for(unsigned FL_INT i=0; i<std::min(a.M(),v.N()); i++){
       v(i) = a(i, index);
     }
   };
   
 
-  static DenseVector<TPrecision> ExtractRow(Matrix<TPrecision> &a, int index){
+  static DenseVector<TPrecision> ExtractRow(Matrix<TPrecision> &a, FL_INT index){
     DenseVector<TPrecision> v(a.N());
-    for(unsigned int i=0; i<a.N(); i++){
+    for(unsigned FL_INT i=0; i<a.N(); i++){
       v(i) = a(index, i);
     }
     return v;
   };
 
 
-  static void ExtractRow(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
-    for(unsigned int i=0; i<a.N(); i++){
+  static void ExtractRow(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &v){
+    for(unsigned FL_INT i=0; i<a.N(); i++){
       v(i) = a(index, i);
     }
   };
@@ -1012,63 +1017,63 @@ class Linalg{
 
 
 
-  static void SetColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
-    for(unsigned int i=0; i < std::min(a.M(), v.N()); i++){
+  static void SetColumn(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &v){
+    for(unsigned FL_INT i=0; i < std::min(a.M(), v.N()); i++){
       a(i, index) = v(i);
     }
   };
   
   
-  static void SetColumns(Matrix<TPrecision> &T, int s1, int e1, DenseMatrix<TPrecision> &F, int s2){
-    for(unsigned int i=0; i< e1-s1; i++){
-      for(int j=0; j<T.M(); j++){
+  static void SetColumns(Matrix<TPrecision> &T, FL_INT s1, FL_INT e1, DenseMatrix<TPrecision> &F, FL_INT s2 = 0){
+    for(unsigned FL_INT i=0; i< e1-s1; i++){
+      for(FL_INT j=0; j<T.M(); j++){
         T(j, s1+i) = F(j, s2+i);
       }
     }
   };
 
 
-  static void SetRow(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v){
-    for(unsigned int i=0; i<std::min(a.N(), v.N()); i++){
+  static void SetRow(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &v){
+    for(unsigned FL_INT i=0; i<std::min(a.N(), v.N()); i++){
       a(index, i) = v(i);
     }
   };
 
   
-  static void SetColumn(Matrix<TPrecision> &a, int index, TPrecision v){
-    for(unsigned int i=0; i < a.M(); i++){
+  static void SetColumn(Matrix<TPrecision> &a, FL_INT index, TPrecision v){
+    for(unsigned FL_INT i=0; i < a.M(); i++){
       a(i, index) = v;
     }
   };
 
-  static void SetRow(Matrix<TPrecision> &a, int index, TPrecision v){
-    for(unsigned int i=0; i<a.N(); i++){
+  static void SetRow(Matrix<TPrecision> &a, FL_INT index, TPrecision v){
+    for(unsigned FL_INT i=0; i<a.N(); i++){
       a(index, i) = v;
     }
   }; 
 
 
 
-  static void SetColumn(Matrix<TPrecision> &a, int aindex,
-      DenseMatrix<TPrecision> &b, int bindex){
-    for(unsigned int i=0; i<std::min(a.M(), b.M()); i++){
+  static void SetColumn(Matrix<TPrecision> &a, FL_INT aindex,
+      DenseMatrix<TPrecision> &b, FL_INT bindex){
+    for(unsigned FL_INT i=0; i<std::min(a.M(), b.M()); i++){
       a(i, aindex) = b(i, bindex);
     }
   };
 
 
 
-  static void SetRow(Matrix<TPrecision> &a, int aindex,
-      DenseMatrix<TPrecision> &b, int bindex){
-    for(unsigned int i=0; i<std::min(a.N(), b.N()); i++){
+  static void SetRow(Matrix<TPrecision> &a, FL_INT aindex,
+      DenseMatrix<TPrecision> &b, FL_INT bindex){
+    for(unsigned FL_INT i=0; i<std::min(a.N(), b.N()); i++){
       a(aindex, i) = b(bindex, i);
     }
   };
 
 
-  static void SetRowFromColumn(Matrix<TPrecision> &a, int aindex,
-      DenseMatrix<TPrecision> &b, int bindex){
-    for(unsigned int i=0; i<std::min(a.N(), b.M()); i++){
+  static void SetRowFromColumn(Matrix<TPrecision> &a, FL_INT aindex,
+      DenseMatrix<TPrecision> &b, FL_INT bindex){
+    for(unsigned FL_INT i=0; i<std::min(a.N(), b.M()); i++){
       a(aindex, i) = b(i, bindex);
     }
   };
@@ -1084,27 +1089,35 @@ class Linalg{
 
 
   static void SumColumns(Matrix<TPrecision> &a, Vector<TPrecision> &v){
-      for(unsigned int i=0; i < a.M(); i++){
+      for(unsigned FL_INT i=0; i < a.M(); i++){
         v(i) = 0;
-        for(unsigned int j=0; j < a.N(); j++){
+        for(unsigned FL_INT j=0; j < a.N(); j++){
           v(i) += a(i, j);
         }
       }
   };
 
   
-  static double SumColumn(Matrix<TPrecision> &a, int index){
+  static double SumColumn(Matrix<TPrecision> &a, FL_INT index){
     double sum = 0;
-    for(unsigned int i=0; i < a.M(); i++){
+    for(unsigned FL_INT i=0; i < a.M(); i++){
       sum += a(i, index);
     }
     return sum;
   };
   
- 
+   static double Product(Vector<TPrecision> &a){
+    double p = 1;
+    for(unsigned FL_INT i=0; i < a.N(); i++){
+      p *= a(i);
+    }
+    return p;
+  };
+
+
   static double Sum(Vector<TPrecision> &a){
     double sum = 0;
-    for(unsigned int i=0; i < a.N(); i++){
+    for(unsigned FL_INT i=0; i < a.N(); i++){
       sum += a(i);
     }
     return sum;
@@ -1112,8 +1125,8 @@ class Linalg{
    
   static double Sum(Matrix<TPrecision> &a){
     double sum = 0;
-    for(unsigned int i=0; i < a.M(); i++){
-      for(unsigned int j=0; j < a.N(); j++){
+    for(unsigned FL_INT i=0; i < a.M(); i++){
+      for(unsigned FL_INT j=0; j < a.N(); j++){
         sum += a(i,j);
       }
     }
@@ -1131,9 +1144,9 @@ class Linalg{
 
 
   static void SumRows(Matrix<TPrecision> &a, Vector<TPrecision> &v){
-      for(unsigned int j=0; j < a.N(); j++){
+      for(unsigned FL_INT j=0; j < a.N(); j++){
         v(j) = 0;
-        for(unsigned int i=0; i < a.M(); i++){
+        for(unsigned FL_INT i=0; i < a.M(); i++){
           v(j) += a(i, j);
         }
       }
@@ -1144,8 +1157,8 @@ class Linalg{
 
   static void SubtractColumnwise(Matrix<TPrecision> &a, Vector<TPrecision> &v,
       Matrix<TPrecision> &out){
-      for(unsigned int i=0; i < a.M(); i++){
-        for(unsigned int j=0; j < a.N(); j++){
+      for(unsigned FL_INT i=0; i < a.M(); i++){
+        for(unsigned FL_INT j=0; j < a.N(); j++){
           out(i, j) = a(i, j) - v(i);
         }
       }
@@ -1155,8 +1168,8 @@ class Linalg{
 
   static void AddColumnwise(Matrix<TPrecision> &a, Vector<TPrecision> &v,
       Matrix<TPrecision> &out){
-      for(unsigned int i=0; i < a.M(); i++){
-        for(unsigned int j=0; j < a.N(); j++){
+      for(unsigned FL_INT i=0; i < a.M(); i++){
+        for(unsigned FL_INT j=0; j < a.N(); j++){
           out(i, j) = a(i, j) + v(i);
         }
       }
@@ -1164,25 +1177,25 @@ class Linalg{
   
 
 
-  static void SubtractColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v,
+  static void SubtractColumn(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &v,
       Matrix<TPrecision> &out)  {
-      for(unsigned int i=0; i < a.M(); i++){
+      for(unsigned FL_INT i=0; i < a.M(); i++){
         out(i, index) = a(i, index) - v(i);
       }
   };
 
 
-  static void AddColumn(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v,
+  static void AddColumn(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &v,
       Matrix<TPrecision> &out){
-      for(unsigned int i=0; i < a.M(); i++){
+      for(unsigned FL_INT i=0; i < a.M(); i++){
         out(i, index) = a(i, index) + v(i);
       }
   };
 
   static void SubtractRowwise(Matrix<TPrecision> &a, Vector<TPrecision> &v,
       Matrix<TPrecision> &out){
-      for(unsigned int i=0; i < a.M(); i++){
-        for(unsigned int j=0; j < a.N(); j++){
+      for(unsigned FL_INT i=0; i < a.M(); i++){
+        for(unsigned FL_INT j=0; j < a.N(); j++){
           out(i, j) = a(i, j) - v(j);
         }
       }
@@ -1190,9 +1203,9 @@ class Linalg{
   
 
 
-  static void SubtractRow(Matrix<TPrecision> &a, int index, Vector<TPrecision> &v,
+  static void SubtractRow(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &v,
       Matrix<TPrecision> &out){
-      for(unsigned int j=0; j < a.N(); j++){
+      for(unsigned FL_INT j=0; j < a.N(); j++){
         out(index, j) = a(index, j) - v(j);
       }
   };
@@ -1201,30 +1214,30 @@ class Linalg{
 
   //result = a + b
   static void Add(Vector<TPrecision> &a, Vector<TPrecision> &b, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.N(); i++){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       result(i) = a(i) + b(i);
     }    
   };
 
   //result = a + B(:, index)
-  static void Add(Vector<TPrecision> &a, Matrix<TPrecision> &B, int index, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.N(); i++){
+  static void Add(Vector<TPrecision> &a, Matrix<TPrecision> &B, FL_INT index, Vector<TPrecision> &result){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       result(i) = a(i) + B(i, index);
     }    
   };
 
 
   //B(:, index) = a + B(:, index)
-  static void Add(Matrix<TPrecision> &B, int index, Vector<TPrecision> &a){
-    for(unsigned int i = 0; i < a.N(); i++){
+  static void Add(Matrix<TPrecision> &B, FL_INT index, Vector<TPrecision> &a){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       B(i, index) = a(i) + B(i, index);
     }    
   };
   
   //C = A + B
   static void Add(Matrix<TPrecision> &A, Matrix<TPrecision> &B, Matrix<TPrecision> &C){
-    for(unsigned int i = 0; i < A.N(); i++){
-      for(unsigned int j = 0; j< A.M(); j++){
+    for(unsigned FL_INT i = 0; i < A.N(); i++){
+      for(unsigned FL_INT j = 0; j< A.M(); j++){
         C(j, i) = A(j, i) + B(j, i);
       }
     }    
@@ -1233,16 +1246,16 @@ class Linalg{
   
   //C = A - B
   static void Subtract(Matrix<TPrecision> &A, Matrix<TPrecision> &B, Matrix<TPrecision> &C){
-    for(unsigned int i = 0; i < A.N(); i++){
-      for(unsigned int j = 0; j< A.M(); j++){
+    for(unsigned FL_INT i = 0; i < A.N(); i++){
+      for(unsigned FL_INT j = 0; j< A.M(); j++){
         C(j, i) = A(j, i) - B(j, i);
       }
     }    
   };     
   
   static void Scale(Matrix<TPrecision> &A, TPrecision s, Matrix<TPrecision> &C){
-    for(unsigned int i = 0; i < A.N(); i++){
-      for(unsigned int j = 0; j< A.M(); j++){
+    for(unsigned FL_INT i = 0; i < A.N(); i++){
+      for(unsigned FL_INT j = 0; j< A.M(); j++){
         C(j, i) = s*A(j, i);
       }
     }    
@@ -1250,7 +1263,7 @@ class Linalg{
   
   //result = a + s*b
   static void AddScale(Vector<TPrecision> &a, TPrecision s, Vector<TPrecision> &b, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.N(); i++){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       result(i) = a(i) + s * b(i);
     }    
   };
@@ -1258,22 +1271,22 @@ class Linalg{
 
 
   static void AddScale(Vector<TPrecision> &a, TPrecision s, Matrix<TPrecision> &b,
-      int index, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.N(); i++){
+      FL_INT index, Vector<TPrecision> &result){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       result(i) = a(i) + s * b(i, index);
     }    
   };
 
-  static void AddScale(Matrix<TPrecision> &a, int i1, TPrecision s, Vector<TPrecision> &b,
+  static void AddScale(Matrix<TPrecision> &a, FL_INT i1, TPrecision s, Vector<TPrecision> &b,
       Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
       result(i) = a(i,i1) + s * b(i);
     }    
   };
 
-  static void AddScale(Matrix<TPrecision> &a, int i1, TPrecision s, Matrix<TPrecision> &b, int i2,
+  static void AddScale(Matrix<TPrecision> &a, FL_INT i1, TPrecision s, Matrix<TPrecision> &b, FL_INT i2,
       Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
       result(i) = a(i,i1) + s * b(i, i2);
     }    
   };
@@ -1281,16 +1294,16 @@ class Linalg{
 
   
   static void AddScale(Matrix<TPrecision> &a, TPrecision s, Matrix<TPrecision> &b, Matrix<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
-      for(unsigned int j = 0; j < a.N(); j++){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
+      for(unsigned FL_INT j = 0; j < a.N(); j++){
         result(i, j) = a(i, j) + s * b(i, j);
       }
     }    
   };
 
   static void SubtractScale(Matrix<TPrecision> &a, TPrecision s, Matrix<TPrecision> &b, Matrix<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
-      for(unsigned int j = 0; j < a.N(); j++){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
+      for(unsigned FL_INT j = 0; j < a.N(); j++){
         result(i, j) = a(i, j) - s * b(i, j);
       }
     }    
@@ -1299,14 +1312,14 @@ class Linalg{
 
 
   
-  static void ColumnAddScale(DenseMatrix<TPrecision> &m, int index, TPrecision s, Vector<TPrecision> &b){
-    for(unsigned int i = 0; i < m.M(); i++){
+  static void ColumnAddScale(DenseMatrix<TPrecision> &m, FL_INT index, TPrecision s, Vector<TPrecision> &b){
+    for(unsigned FL_INT i = 0; i < m.M(); i++){
       m(i, index) = m(i, index) + s * b(i);
     }    
   };
 
-  static void ColumnAddScale(DenseMatrix<TPrecision> &m, int i1, TPrecision s, DenseMatrix<TPrecision> &b, int i2){
-    for(unsigned int i = 0; i < m.M(); i++){
+  static void ColumnAddScale(DenseMatrix<TPrecision> &m, FL_INT i1, TPrecision s, DenseMatrix<TPrecision> &b, FL_INT i2){
+    for(unsigned FL_INT i = 0; i < m.M(); i++){
       m(i, i1) = m(i, i1) + s * b(i, i2);
     }    
   };
@@ -1319,10 +1332,10 @@ class Linalg{
   };
 	  
   static void ColumnwiseSquaredNorm(Matrix<TPrecision> &A, Vector<TPrecision> &v){	  
-    for(unsigned int i=0; i< A.N(); i++){
+    for(unsigned FL_INT i=0; i< A.N(); i++){
       TPrecision norm =0;
       TPrecision tmp =0;
-      for(unsigned int j=0; j<A.M(); j++){
+      for(unsigned FL_INT j=0; j<A.M(); j++){
 	      tmp = A(j, i);
         norm += tmp *tmp;
       }
@@ -1338,10 +1351,10 @@ class Linalg{
   };
 	  
   static void ColumnwiseNorm(Matrix<TPrecision> &A, Vector<TPrecision> &v){
-    for(unsigned int i=0; i< A.N(); i++){
+    for(unsigned FL_INT i=0; i< A.N(); i++){
       TPrecision norm =0;
       TPrecision tmp =0;
-      for(unsigned int j=0; j<A.M(); j++){
+      for(unsigned FL_INT j=0; j<A.M(); j++){
 	tmp = A(j, i);
         norm += tmp *tmp;
       }
@@ -1353,15 +1366,15 @@ class Linalg{
 
   //result = a - b
   static void Subtract(Vector<TPrecision> &a, TPrecision b, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.N(); i++){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       result(i) = a(i) - b;
     }    
   };
 
     //result = a - b
   static void Subtract(Matrix<TPrecision> &a, TPrecision b, Matrix<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
-      for(unsigned int j = 0; j < a.N(); j++){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
+      for(unsigned FL_INT j = 0; j < a.N(); j++){
         result(i,j) = a(i, j) - b;
       }
     }    
@@ -1369,7 +1382,7 @@ class Linalg{
 
   //result = a - b
   static void Add(Vector<TPrecision> &a, TPrecision b, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.N(); i++){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       result(i) = a(i) + b;
     }    
   };
@@ -1379,7 +1392,7 @@ class Linalg{
 
   //result = a - b
   static void Subtract(Vector<TPrecision> &a, Vector<TPrecision> &b, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < std::min(a.N(), b.N()); i++){
+    for(unsigned FL_INT i = 0; i < std::min(a.N(), b.N()); i++){
       result(i) = a(i) - b(i);
     }    
   };
@@ -1396,8 +1409,8 @@ class Linalg{
 
 
   //result = a(:, index) - b
-  static void Subtract(Matrix<TPrecision> &a, int index, Vector<TPrecision> &b, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
+  static void Subtract(Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &b, Vector<TPrecision> &result){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
       result(i) = a(i, index) - b(i);
     }    
   };
@@ -1405,8 +1418,8 @@ class Linalg{
 
 
   //result =b - a(:, index)
-  static void Subtract(Vector<TPrecision> &b, Matrix<TPrecision> &a, int index, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
+  static void Subtract(Vector<TPrecision> &b, Matrix<TPrecision> &a, FL_INT index, Vector<TPrecision> &result){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
       result(i) = b(i) - a(i, index);
     }    
   };
@@ -1414,9 +1427,9 @@ class Linalg{
 
 
   //result = a(:, index) - b(:, index)
-  static void Subtract(Matrix<TPrecision> &a, int aindex, Matrix<TPrecision> &b,
-      int bindex, Vector<TPrecision> &result){
-    for(unsigned int i = 0; i < a.M(); i++){
+  static void Subtract(Matrix<TPrecision> &a, FL_INT aindex, Matrix<TPrecision> &b,
+      FL_INT bindex, Vector<TPrecision> &result){
+    for(unsigned FL_INT i = 0; i < a.M(); i++){
       result(i) = a(i, aindex) - b(i, bindex);
     }    
   };
@@ -1430,17 +1443,17 @@ class Linalg{
 
 
   static void Copy(Matrix<TPrecision> &from, Matrix<TPrecision> &to){
-    for(unsigned int i = 0; i < std::min(from.N(), to.N()); i++){
-      for(unsigned int j= 0; j < std::min(from.M(), to.M()); j++){
+    for(unsigned FL_INT i = 0; i < std::min(from.N(), to.N()); i++){
+      for(unsigned FL_INT j= 0; j < std::min(from.M(), to.M()); j++){
         to(j, i) = from(j, i);
       }
     } 
   };  
  
 
-  static void CopyColumn(Matrix<TPrecision> &from, unsigned int fi, Matrix<TPrecision>
-      &to, unsigned int ti){
-    for(unsigned int j= 0; j < std::min(from.M(), to.M()); j++){
+  static void CopyColumn(Matrix<TPrecision> &from, unsigned FL_INT fi, Matrix<TPrecision>
+      &to, unsigned FL_INT ti){
+    for(unsigned FL_INT j= 0; j < std::min(from.M(), to.M()); j++){
       to(j, ti) = from(j, fi);
     }
   };
@@ -1457,15 +1470,15 @@ class Linalg{
 
 
   static void Copy(Vector<TPrecision> &from, Vector<TPrecision> &to){
-    for(unsigned int i = 0; i < std::min( from.N(), to.N() ); i++){
+    for(unsigned FL_INT i = 0; i < std::min( from.N(), to.N() ); i++){
       to(i) = from(i);
     } 
   };
 
 
-  static TPrecision SquaredLengthColumn(Matrix<TPrecision> &v, int index){
+  static TPrecision SquaredLengthColumn(Matrix<TPrecision> &v, FL_INT index){
     TPrecision l = 0;
-    for(unsigned int i = 0; i < v.M(); i++){
+    for(unsigned FL_INT i = 0; i < v.M(); i++){
       l += v(i, index) * v(i, index);
     }  
     return l;
@@ -1474,29 +1487,29 @@ class Linalg{
 
   static DenseVector<TPrecision> ColumnLengths(Matrix<TPrecision> &X){
     DenseVector<TPrecision> l(X.N());
-    for(int i=0; i<l.N(); i++){
+    for(FL_INT i=0; i<l.N(); i++){
       l(i) = LengthColumn(X, i);
     }
     return l;
   };  
   
   static void ColumnLengths(Matrix<TPrecision> &X, DenseVector<TPrecision> &l){
-    for(int i=0; i<l.N(); i++){
+    for(FL_INT i=0; i<l.N(); i++){
       l(i) = LengthColumn(X, i);
     }
   };
 
-  static TPrecision LengthColumn(Matrix<TPrecision> &v, int index){
+  static TPrecision LengthColumn(Matrix<TPrecision> &v, FL_INT index){
     TPrecision l = 0;
-    for(unsigned int i = 0; i < v.M(); i++){
+    for(unsigned FL_INT i = 0; i < v.M(); i++){
       l += v(i, index) * v(i, index);
     }  
     return sqrt(l);
   };
 
-  static TPrecision LengthRow(Matrix<TPrecision> &v, int index){
+  static TPrecision LengthRow(Matrix<TPrecision> &v, FL_INT index){
     TPrecision l = 0;
-    for(unsigned int i = 0; i < v.N(); i++){
+    for(unsigned FL_INT i = 0; i < v.N(); i++){
       l += v(index, i) * v(index, i);
     }  
     return sqrt(l);
@@ -1504,7 +1517,7 @@ class Linalg{
 
   static TPrecision Length(Vector<TPrecision> &v){
     TPrecision l = 0;
-    for(unsigned int i = 0; i < v.N(); i++){
+    for(unsigned FL_INT i = 0; i < v.N(); i++){
       l += v(i) * v(i);
     }  
     return sqrt(l);
@@ -1512,7 +1525,7 @@ class Linalg{
   
   static TPrecision SquaredLength(Vector<TPrecision> &v){
     TPrecision l = 0;
-    for(unsigned int i = 0; i < v.N(); i++){
+    for(unsigned FL_INT i = 0; i < v.N(); i++){
       l += v(i) * v(i);
     }  
     return l;
@@ -1522,7 +1535,7 @@ class Linalg{
 
   static TPrecision Dot(Vector<TPrecision> &a, Vector<TPrecision> &b){
     TPrecision tmp = 0;
-    for(unsigned int i = 0; i < a.N(); i++){
+    for(unsigned FL_INT i = 0; i < a.N(); i++){
       tmp += b(i) * a(i);
     }  
     return tmp; 
@@ -1537,8 +1550,8 @@ class Linalg{
 
   static void OuterProduct(Vector<TPrecision> &a,
     Vector<TPrecision> &b, Matrix<TPrecision> &op){
-    for(unsigned int i=0; i<a.N(); i++){
-      for(unsigned int j=0; j<b.N(); j++){
+    for(unsigned FL_INT i=0; i<a.N(); i++){
+      for(unsigned FL_INT j=0; j<b.N(); j++){
         op(j,i) = a(i) * b(j);
       }
     }
@@ -1546,8 +1559,8 @@ class Linalg{
   
   static void AddOuterProduct(Matrix<TPrecision> &c, Vector<TPrecision> &a,
     Vector<TPrecision> &b, Matrix<TPrecision> &op){
-    for(unsigned int i=0; i<a.N(); i++){
-      for(unsigned int j=0; j<b.N(); j++){
+    for(unsigned FL_INT i=0; i<a.N(); i++){
+      for(unsigned FL_INT j=0; j<b.N(); j++){
         op(j,i) = c(j, i) + a(i) * b(j);
       }
     }
@@ -1555,29 +1568,29 @@ class Linalg{
   
   static void SubtractOuterProduct(Matrix<TPrecision> &c, Vector<TPrecision> &a,
     Vector<TPrecision> &b, Matrix<TPrecision> &op){
-    for(unsigned int i=0; i<a.N(); i++){
-      for(unsigned int j=0; j<b.N(); j++){
+    for(unsigned FL_INT i=0; i<a.N(); i++){
+      for(unsigned FL_INT j=0; j<b.N(); j++){
         op(j,i) = c(j, i) - a(i) * b(j);
       }
     }
   };  
   
   static void AddOuterProduct(Matrix<TPrecision> &c, Matrix<TPrecision> &a,
-      unsigned int ai, Matrix<TPrecision> &b, unsigned int bi, 
+      unsigned FL_INT ai, Matrix<TPrecision> &b, unsigned FL_INT bi, 
       Matrix<TPrecision> &op){
 
-    for(unsigned int i=0; i<a.M(); i++){
-      for(unsigned int j=0; j<b.M(); j++){
+    for(unsigned FL_INT i=0; i<a.M(); i++){
+      for(unsigned FL_INT j=0; j<b.M(); j++){
         op(j,i) = c(j,i) + a(i, ai) * b(j, bi);
       }
     }
   };  
   
   static void AddOuterProduct(Matrix<TPrecision> &c, Vector<TPrecision> &a, 
-      Matrix<TPrecision> &b, unsigned int bi, Matrix<TPrecision> &op){
+      Matrix<TPrecision> &b, unsigned FL_INT bi, Matrix<TPrecision> &op){
 
-    for(unsigned int i=0; i<a.N(); i++){
-      for(unsigned int j=0; j<b.M(); j++){
+    for(unsigned FL_INT i=0; i<a.N(); i++){
+      for(unsigned FL_INT j=0; j<b.M(); j++){
         op(j,i) = c(j,i) + a(i) * b(j, bi);
       }
     }
@@ -1590,14 +1603,14 @@ class Linalg{
 
   //result = v*s
   static void Scale(Vector<TPrecision> &v, TPrecision s, Vector<TPrecision> &result){
-    for(unsigned int i=0; i < v.N(); i++){
+    for(unsigned FL_INT i=0; i < v.N(); i++){
       result(i) = v(i)*s;
     }
   };   
   
 
   static void Sqrt(Vector<TPrecision> &v, Vector<TPrecision> &result){
-    for(unsigned int i=0; i < v.N(); i++){
+    for(unsigned FL_INT i=0; i < v.N(); i++){
       result(i) = sqrt(v(i));
     }
   };   
@@ -1613,12 +1626,12 @@ class Linalg{
   };
   
   static void NormalizeColumns(Matrix<TPrecision> &m){
-    for(int i=0; i< m.N(); i++){
+    for(FL_INT i=0; i< m.N(); i++){
       NormalizeColumn(m, i);
     }
   };
 
-  static void NormalizeColumn(Matrix<TPrecision> &V, int index){
+  static void NormalizeColumn(Matrix<TPrecision> &V, FL_INT index){
       TPrecision l = 1.0/LengthColumn(V, index);
       if( l!=l || 
           std::numeric_limits<TPrecision>::infinity() == l ){
@@ -1630,18 +1643,18 @@ class Linalg{
 
 
 
-  static void ScaleColumn(Matrix<TPrecision> &m, int index, TPrecision s){
-    for(unsigned int i=0; i < m.M(); i++){
+  static void ScaleColumn(Matrix<TPrecision> &m, FL_INT index, TPrecision s){
+    for(unsigned FL_INT i=0; i < m.M(); i++){
       m(i,index) = m(i, index) * s;
     }
   };
 
-  static void ScaleRow(DenseMatrix<TPrecision> &m, int index, TPrecision s){
+  static void ScaleRow(DenseMatrix<TPrecision> &m, FL_INT index, TPrecision s){
     ScaleRow(m, index, s, m);
   };
   
-  static void ScaleRow(DenseMatrix<TPrecision> &m, int index, TPrecision s, DenseMatrix<TPrecision> &out){
-    for(unsigned int i=0; i < m.N(); i++){
+  static void ScaleRow(DenseMatrix<TPrecision> &m, FL_INT index, TPrecision s, DenseMatrix<TPrecision> &out){
+    for(unsigned FL_INT i=0; i < m.N(); i++){
       out(index, i) = m(index, i) * s;
     }
   };
@@ -1649,7 +1662,7 @@ class Linalg{
 
 
   static void Set(Vector<TPrecision> &v, TPrecision s){
-    for(unsigned int i=0; i < v.N(); i++){
+    for(unsigned FL_INT i=0; i < v.N(); i++){
       v(i) = s;
     }
   };
@@ -1657,8 +1670,8 @@ class Linalg{
 
 
   static void Set(Matrix<TPrecision> &a, TPrecision s){
-    for(unsigned int i=0; i<a.M(); i++){
-      for(unsigned int j=0; j<a.N(); j++){
+    for(unsigned FL_INT i=0; i<a.M(); i++){
+      for(unsigned FL_INT j=0; j<a.N(); j++){
         a(i, j) = s;
       }
     }
@@ -1693,8 +1706,8 @@ class Linalg{
       DenseMatrix<TPrecision> &r){
     TPrecision *a = m.data();
     TPrecision *b = r.data();
-    unsigned int l = m.N() * m.M();
-    for(unsigned int i=0; i<l; i++){
+    unsigned FL_INT l = m.N() * m.M();
+    for(unsigned FL_INT i=0; i<l; i++){
       b[i] = a[i]*s;
     }
   };
@@ -1708,8 +1721,8 @@ class Linalg{
   static TPrecision SquaredFrobeniusNorm(Matrix<TPrecision> &m){
     TPrecision tmp = 0;
     TPrecision norm = 0;
-    for(unsigned int i=0; i<m.M(); i++){
-      for(unsigned int j=0; j<m.N(); j++){
+    for(unsigned FL_INT i=0; i<m.M(); i++){
+      for(unsigned FL_INT j=0; j<m.N(); j++){
         tmp = m(i, j);
         norm += tmp*tmp;
       }
@@ -1718,10 +1731,10 @@ class Linalg{
   };
 
   
-  static DenseMatrix<TPrecision> Identity(int n){
+  static DenseMatrix<TPrecision> Identity(FL_INT n){
     DenseMatrix<TPrecision> eye(n, n);
     eye.zero();
-    for(unsigned int i=0; i<n; i++){
+    for(unsigned FL_INT i=0; i<n; i++){
       eye(i, i) = 1;
     }
     return eye;
@@ -1734,8 +1747,8 @@ class Linalg{
   };
 
   static void Transpose(DenseMatrix<TPrecision> A, DenseMatrix<TPrecision> B){
-    for(unsigned int i=0; i<A.M(); i++){
-      for(unsigned int j=0; j<A.N(); j++){
+    for(unsigned FL_INT i=0; i<A.M(); i++){
+      for(unsigned FL_INT j=0; j<A.N(); j++){
         B(j, i) = A(i, j);
       }
     }
@@ -1743,10 +1756,10 @@ class Linalg{
 
 
 
-  static bool IsColumnEqual(DenseMatrix<TPrecision> A, int ai, DenseMatrix<TPrecision>
-      B, int bi){
+  static bool IsColumnEqual(DenseMatrix<TPrecision> A, FL_INT ai, DenseMatrix<TPrecision>
+      B, FL_INT bi){
     bool equal = true;
-    for(unsigned int i=0; i< A.M() && equal; i++){
+    for(unsigned FL_INT i=0; i< A.M() && equal; i++){
       equal = A(i, ai) == B(i, bi);
     }
     return equal;
@@ -1754,10 +1767,10 @@ class Linalg{
 
 
 
-  static DenseVector<TPrecision> Max(Matrix<TPrecision> &A){
+  static DenseVector<TPrecision> RowMax(Matrix<TPrecision> &A){
     DenseVector<TPrecision> m = Linalg<TPrecision>::ExtractColumn(A, 0);
-    for(unsigned  int i=0;i<A.N(); i++){
-      for(unsigned int j=0; j<A.M(); j++){
+    for(unsigned  FL_INT i=0;i<A.N(); i++){
+      for(unsigned FL_INT j=0; j<A.M(); j++){
         if(A(j, i) > m(j)){
           m(j) = A(j, i);
         }
@@ -1769,10 +1782,10 @@ class Linalg{
 
 
 
-  static DenseVector<TPrecision> Min(Matrix<TPrecision> &A){
+  static DenseVector<TPrecision> RowMin(Matrix<TPrecision> &A){
     DenseVector<TPrecision> m = Linalg<TPrecision>::ExtractColumn(A, 0);
-    for(unsigned int i=0;i<A.N(); i++){
-      for(unsigned int j=0; j<A.M(); j++){
+    for(unsigned FL_INT i=0;i<A.N(); i++){
+      for(unsigned FL_INT j=0; j<A.M(); j++){
         if(A(j, i) < m(j)){
           m(j) = A(j, i);
         }
@@ -1784,8 +1797,8 @@ class Linalg{
 
   static TPrecision MaxAll(Matrix<TPrecision> &A){
     TPrecision m = -std::numeric_limits<TPrecision>::max();
-    for(unsigned  int i=0;i<A.N(); i++){
-      for(unsigned int j=0; j<A.M(); j++){
+    for(unsigned  FL_INT i=0;i<A.N(); i++){
+      for(unsigned FL_INT j=0; j<A.M(); j++){
         if(A(j, i) > m){
           m = A(j, i);
         }
@@ -1796,8 +1809,8 @@ class Linalg{
 
   static TPrecision MinAll(Matrix<TPrecision> &A){
     TPrecision m = std::numeric_limits<TPrecision>::max();
-    for(unsigned  int i=0;i<A.N(); i++){
-      for(unsigned int j=0; j<A.M(); j++){
+    for(unsigned  FL_INT i=0;i<A.N(); i++){
+      for(unsigned FL_INT j=0; j<A.M(); j++){
         if(A(j, i) < m){
           m = A(j, i);
         }
@@ -1814,7 +1827,7 @@ class Linalg{
 
   static TPrecision Max(Vector<TPrecision> &A){
     TPrecision m = A(0);
-    for(unsigned int i=0;i<A.N(); i++){
+    for(unsigned FL_INT i=0;i<A.N(); i++){
         if(A(i) > m){
           m = A(i);
         }
@@ -1824,7 +1837,7 @@ class Linalg{
   
   static TPrecision Min(Vector<TPrecision> &A){
     TPrecision m = A(0);
-    for(unsigned int i=0;i<A.N(); i++){
+    for(unsigned FL_INT i=0;i<A.N(); i++){
         if(A(i) < m){
           m = A(i);
         }
@@ -1833,9 +1846,9 @@ class Linalg{
   };
 
 
-  static TPrecision MaxColumn(Matrix<TPrecision> &A, int index){
+  static TPrecision MaxColumn(Matrix<TPrecision> &A, FL_INT index){
     TPrecision m = A(0, index);
-    for(unsigned int i=1;i<A.M(); i++){
+    for(unsigned FL_INT i=1;i<A.M(); i++){
         if(A(i, index) > m){
           m = A(i, index);
         }
@@ -1843,9 +1856,9 @@ class Linalg{
     return m;
   };
   
-  static TPrecision MinColumn(Matrix<TPrecision> &A, int index){
+  static TPrecision MinColumn(Matrix<TPrecision> &A, FL_INT index){
     TPrecision m = A(0, index);
-    for(unsigned int i=1;i<A.M(); i++){
+    for(unsigned FL_INT i=1;i<A.M(); i++){
         if(A(i, index) < m){
           m = A(i, index);
         }
@@ -1857,8 +1870,8 @@ class Linalg{
 
 
   static void Print(DenseMatrix<TPrecision> &m){
-    for(int i=0; i<m.M(); i++){
-      for(int j=0; j< m.N(); j++){
+    for(FL_INT i=0; i<m.M(); i++){
+      for(FL_INT j=0; j< m.N(); j++){
         std::cout << m(i, j) << ", ";
       }
       std::cout << std::endl;
@@ -1866,7 +1879,7 @@ class Linalg{
   };
 
     static void Print(DenseVector<TPrecision> &v){
-      for(int j=0; j< v.N(); j++){
+      for(FL_INT j=0; j< v.N(); j++){
         std::cout << v(j) << ", ";
       }
       std::cout << std::endl;
@@ -1882,7 +1895,7 @@ class Linalg{
 
     typename std::list< DenseVector<TPrecision> >::iterator it = v.begin();
     res = DenseMatrix<TPrecision>( (*it).N(), v.size() );
-    for(int i=0; it != v.end(); ++it, ++i){
+    for(FL_INT i=0; it != v.end(); ++it, ++i){
       Linalg<TPrecision>::SetColumn(res, i, *it);
     }
     return res;
@@ -1896,7 +1909,7 @@ class Linalg{
 
     res = DenseVector<TPrecision>( v.size() );
     typename std::list< TPrecision>::iterator it = v.begin();
-    for(int i=0; it != v.end(); ++it, ++i){
+    for(FL_INT i=0; it != v.end(); ++it, ++i){
       res(i) = *it;
     }
     return res;
@@ -1914,46 +1927,46 @@ class Linalg{
  };
 
 
- static DenseVector<TPrecision> Expand(DenseVector<TPrecision> &v, int
+ static DenseVector<TPrecision> Expand(DenseVector<TPrecision> &v, FL_INT
      newLength, TPrecision fill = 0){
    DenseVector<TPrecision> a(newLength);
    Linalg<TPrecision>::Copy(v, a);
-   for(int i=v.N(); i<newLength; i++){
+   for(FL_INT i=v.N(); i<newLength; i++){
      a(i) = fill;
    }
    return a;
  };
 
- static DenseMatrix<TPrecision> ExpandColumns(DenseMatrix<TPrecision> A, int
+ static DenseMatrix<TPrecision> ExpandColumns(DenseMatrix<TPrecision> A, FL_INT
      ncol, TPrecision fill = 0){
    DenseMatrix<TPrecision> M(A.M(), ncol);
    Linalg<TPrecision>::Copy(A, M);
-   for(int i=A.N(); i<M.N(); i++ ){
-     for(int j=0; j<M.M(); j++){
+   for(FL_INT i=A.N(); i<M.N(); i++ ){
+     for(FL_INT j=0; j<M.M(); j++){
        M(j, i) = fill;
      }
    }
    return M;
  };  
  
- static DenseMatrix<TPrecision> ExpandRows(DenseMatrix<TPrecision> A, int
+ static DenseMatrix<TPrecision> ExpandRows(DenseMatrix<TPrecision> A, FL_INT
      nRow, TPrecision fill = 0){
    DenseMatrix<TPrecision> M(nRow, A.N());
    Linalg<TPrecision>::Copy(A, M);
-   for(int i=0; i<M.N(); i++ ){
-     for(int j=A.M(); j<M.M(); j++){
+   for(FL_INT i=0; i<M.N(); i++ ){
+     for(FL_INT j=A.M(); j<M.M(); j++){
        M(j, i) = fill;
      }
    }
    return M;
  };
 
- static DenseMatrix<TPrecision> Expand(DenseMatrix<TPrecision> A, int
-     nCol, int nRow, TPrecision fill = 0){
+ static DenseMatrix<TPrecision> Expand(DenseMatrix<TPrecision> A, FL_INT
+     nCol, FL_INT nRow, TPrecision fill = 0){
    DenseMatrix<TPrecision> M(nRow, nCol);
    Linalg<TPrecision>::Copy(A, M);
-   for(int i=A.N(); i<M.N(); i++ ){
-     for(int j=A.M(); j<M.M(); j++){
+   for(FL_INT i=A.N(); i<M.N(); i++ ){
+     for(FL_INT j=A.M(); j<M.M(); j++){
        M(j, i) = fill;
      }
    }
